@@ -1,7 +1,7 @@
 // API base URL — empty for local dev, Railway backend URL for production
 const API_BASE = window.location.hostname === 'localhost'
     ? ''
-    : 'https://hdfc-faq-backend-production.up.railway.app';
+    : 'https://hdfc-mutual-fund-faq-groww-production.up.railway.app';
 
 const chatForm = document.getElementById('chat-form');
 const queryInput = document.getElementById('query-input');
