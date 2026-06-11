@@ -1,0 +1,32 @@
+# ─── Web Framework ───
+fastapi==0.115.9
+uvicorn[standard]==0.34.3
+
+# ─── Vector Store ───
+chromadb==1.0.7
+
+# ─── LLM (Grok via OpenAI-compatible SDK) ───
+openai==1.86.0
+langchain==0.3.25
+langchain-community==0.3.24
+
+# ─── Embeddings (local, open-source) ───
+sentence-transformers>=3.0.0
+
+# ─── Web Scraping ───
+beautifulsoup4==4.13.4
+playwright==1.52.0
+requests==2.32.3
+lxml==5.4.0
+
+# ─── Utilities ───
+python-dotenv==1.1.0
+pydantic==2.11.3
+pydantic-settings==2.9.1
+apscheduler==3.11.0
+pytz==2024.1
+
+# ─── Testing ───
+pytest==8.4.0
+pytest-asyncio==1.0.0
+httpx==0.28.1

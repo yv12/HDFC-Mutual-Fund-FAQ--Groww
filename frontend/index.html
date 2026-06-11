@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HDFC Mutual Fund FAQ Assistant</title>
+    <meta name="description" content="Facts-only AI assistant for HDFC Mutual Fund scheme information. Get instant answers about expense ratios, NAVs, AUM, and more.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="logo">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                        <path d="M2 17l10 5 10-5"></path>
+                        <path d="M2 12l10 5 10-5"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>Mutual Fund FAQ</h1>
+                    <span class="brand-tagline">Verified Facts Only</span>
+                </div>
+            </div>
+
+            <!-- Sync Knowledge Base button - prominent at top -->
+            <button id="sync-btn" class="sync-button">
+                <span class="sync-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                </span>
+                <span class="sync-label">Sync Knowledge Base</span>
+            </button>
+            <div id="sync-status" class="sync-status hidden"></div>
+
+
+
+
+            <!-- Example Queries -->
+            <div class="example-questions">
+                <h3>Example Queries</h3>
+                <div class="card" onclick="setQuery('What is the expense ratio of HDFC Mid Cap Fund?')">
+                    "What is the expense ratio of HDFC Mid-Cap Opportunities..."
+                </div>
+                <div class="card" onclick="setQuery('Who is the fund manager of HDFC Small Cap Fund?')">
+                    "Who is the fund manager for HDFC Top 100 Fund?"
+                </div>
+                <div class="card" onclick="setQuery('What is the exit load for HDFC Large Cap Fund?')">
+                    "What is the exit load for HDFC Flexi Cap Fund?"
+                </div>
+            </div>
+
+
+
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Disclaimer Banner -->
+            <div class="disclaimer-banner">
+                <span class="disclaimer-icon">⚠️</span>
+                Facts-only. No investment advice. I am an AI assistant and I only provide factual information from Groww.
+            </div>
+
+            <!-- Chat Area -->
+            <div class="chat-area" id="chat-area">
+                <!-- Sync Overlay -->
+                <div id="sync-overlay" class="sync-overlay hidden">
+                    <div class="sync-overlay-card">
+                        <div class="sync-spinner-ring">
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </div>
+                        <h3>Updating Knowledge Base</h3>
+                        <p>Please wait while the system synchronizes data...</p>
+                        <div class="sync-progress-bar">
+                            <div class="sync-progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Header -->
+                <header class="chat-header">
+                    <div class="chat-header-left">
+                        <div class="assistant-avatar">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <h2>HDFC Scheme Assistant</h2>
+                            <span class="status-indicator">
+                                <span class="status-dot"></span> Online
+                            </span>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Chat Messages -->
+                <div class="chat-window" id="chat-window">
+                    <!-- Welcome Message -->
+                    <div class="message assistant">
+                        <div class="message-avatar">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+                                <path d="M2 17l10 5 10-5"></path>
+                                <path d="M2 12l10 5 10-5"></path>
+                            </svg>
+                        </div>
+                        <div class="bubble">
+                            Welcome! 👋 I can answer factual questions about HDFC Mutual Fund schemes like expense ratios, NAVs, and AUM. How can I help you today?
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area">
+                    <form id="chat-form">
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <input type="text" id="query-input" placeholder="Ask a question about HDFC mutual funds..." autocomplete="off" required>
+                            <button type="submit" id="send-btn" aria-label="Send message">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                    <p class="input-disclaimer">AI generated responses. Please verify important financial data independently.</p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="footer-bar">
+                <div class="footer-left">
+                    <span class="footer-icon">⚠️</span>
+                    Facts-only. No investment advice. I am an AI assistant and I only provide factual information from Groww.
+                </div>
+                <div class="footer-links">
+                    <a href="#">Terms</a>
+                    <a href="#">Privacy</a>
+                    <a href="#">Disclaimer</a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="index.js"></script>
+</body>
+</html>

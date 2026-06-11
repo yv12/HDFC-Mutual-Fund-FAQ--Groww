@@ -1,0 +1,92 @@
+================== RAW SCRAPED DATA ==================
+{
+  "scheme_name": "HDFC Mid Cap Fund Direct Growth",
+  "source_url": "https://groww.in/mutual-funds/hdfc-mid-cap-fund-direct-growth",
+  "scraped_at": "2026-06-06T10:06:03.074001+00:00",
+  "category": "Equity",
+  "sub_category": "Mid Cap",
+  "risk_level": "Very High Risk",
+  "nav": "\u20b9220.327",
+  "nav_date": "05-Jun-2026",
+  "min_sip": "\u20b9100",
+  "min_lumpsum": "\u20b9100",
+  "aum": "\u20b994,744.72 Cr",
+  "expense_ratio": "0.73%",
+  "rating": "5",
+  "exit_load": "Exit load of 1% if redeemed within 1 year.",
+  "lock_in_period": "No lock-in",
+  "stamp_duty": "0.005% (from July 1st, 2020)",
+  "benchmark": "NIFTY Midcap 150 TRI",
+  "fund_house": "HDFC Mutual Fund",
+  "launch_date": "01-Jan-2013",
+  "fund_managers": [
+    {
+      "name": "Chirag Setalvad",
+      "since": "Dec 2012",
+      "qualification": "Mr. Setalvad is a B. Sc and MBA from University of North Carolina.",
+      "experience": "Prior to joining HDFC AMC he has worked with New Vernon Advisory Services Ltd., HDFC AMC and ING Barings N.V."
+    },
+    {
+      "name": "Dhruv Muchhal",
+      "since": "Jun 2023",
+      "qualification": "Mr. Dhruv has done B.Com, CA and CFA",
+      "experience": "Prior to joining HDFC MF,he has worked with Motilal Oswal Financial Services Ltd., Goldman Sachs, CRISIL Global Research & Analytics and Deloitte Haskins & Sells"
+    }
+  ],
+  "about": "The scheme seeks to provide long-term capital appreciation/income by investing predominantly in Mid-Cap companies.",
+  "investment_objective": "The scheme seeks to provide long-term capital appreciation/income by investing predominantly in Mid-Cap companies.",
+  "returns_1y": "5.3%",
+  "returns_3y": "22.01%",
+  "returns_5y": "20.49%",
+  "sections": {
+    "Exit Load & Tax": "Exit load: Exit load of 1% if redeemed within 1 year.\nLock-in period: No lock-in\nStamp duty: 0.005% (from July 1st, 2020)",
+    "Fund Managers": "- Chirag Setalvad (managing since Dec 2012), Mr. Setalvad is a B. Sc and MBA from University of North Carolina., Prior to joining HDFC AMC he has worked with New Vernon Advisory Services Ltd., HDFC AMC and ING Barings N.V.\n- Dhruv Muchhal (managing since Jun 2023), Mr. Dhruv has done B.Com, CA and CFA, Prior to joining HDFC MF,he has worked with Motilal Oswal Financial Services Ltd., Goldman Sachs, CRISIL Global Research & Analytics and Deloitte Haskins & Sells",
+    "About": "The scheme seeks to provide long-term capital appreciation/income by investing predominantly in Mid-Cap companies.",
+    "Fund House": "HDFC Mutual Fund",
+    "Minimum Investments": "Minimum SIP Investment: \u20b9100\nMinimum Lumpsum Investment: \u20b9100"
+  }
+}
+
+================== AFTER CHUNKING ==================
+--- CHUNK 1 (Section: Overview) ---
+HDFC Mid Cap Fund Direct Growth
+Category: Equity — Mid Cap
+Risk level: Very High Risk
+Fund house: HDFC Mutual Fund
+Launch date: 01-Jan-2013
+Benchmark index: NIFTY Midcap 150 TRI
+
+--- CHUNK 2 (Section: Fund Details) ---
+Key statistics for HDFC Mid Cap Fund Direct Growth:
+NAV: ₹220.327 (as of 05-Jun-2026)
+Fund size (AUM): ₹94,744.72 Cr
+Expense ratio: 0.73%
+Rating: 5 stars
+Minimum SIP amount: ₹100
+Minimum lumpsum investment: ₹100
+
+--- CHUNK 3 (Section: Exit Load) ---
+Exit load and charges for HDFC Mid Cap Fund Direct Growth:
+Exit load: Exit load of 1% if redeemed within 1 year.
+Lock-in period: No lock-in
+Stamp duty: 0.005% (from July 1st, 2020)
+
+--- CHUNK 4 (Section: Fund Managers) ---
+Fund managers of HDFC Mid Cap Fund Direct Growth:
+- Chirag Setalvad (managing since Dec 2012), Mr. Setalvad is a B. Sc and MBA from University of North Carolina., Prior to joining HDFC AMC he has worked with New Vernon Advisory Services Ltd., HDFC AMC and ING Barings N.V.
+- Dhruv Muchhal (managing since Jun 2023), Mr. Dhruv has done B.Com, CA and CFA, Prior to joining HDFC MF,he has worked with Motilal Oswal Financial Services Ltd., Goldman Sachs, CRISIL Global Research & Analytics and Deloitte Haskins & Sells
+
+--- CHUNK 5 (Section: Returns) ---
+Historical returns for HDFC Mid Cap Fund Direct Growth:
+1-year return: 5.3%
+3-year annualised return: 22.01%
+5-year annualised return: 20.49%
+
+--- CHUNK 6 (Section: About) ---
+About HDFC Mid Cap Fund Direct Growth:
+The scheme seeks to provide long-term capital appreciation/income by investing predominantly in Mid-Cap companies.
+
+--- CHUNK 7 (Section: Investment Objective) ---
+Investment objective of HDFC Mid Cap Fund Direct Growth:
+The scheme seeks to provide long-term capital appreciation/income by investing predominantly in Mid-Cap companies.
+

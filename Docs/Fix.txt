@@ -1,0 +1,248 @@
+============================================================
+  RAG CHATBOT - BUG FIXES LOG
+  Date: 11-Jun-2026
+============================================================
+
+This file documents every bug that was found and fixed in the chatbot.
+Written in simple language so anyone can understand what went wrong,
+why it went wrong, and what was changed to fix it.
+
+------------------------------------------------------------
+FIX 1 - Query Classifier: Bad Words Were Blocking Good Questions
+File Changed: backend/app/pipeline/query_classifier.py
+------------------------------------------------------------
+
+WHAT WAS THE PROBLEM?
+The chatbot has a "gatekeeper" step that reads the user's question and
+decides if it is a FACTUAL question (allowed) or an ADVISORY question
+(blocked). This step runs BEFORE the chatbot even tries to search the
+database.
+
+The problem was that the ADVISORY (blocked) list contained very common,
+harmless words like:
+  - "best"     -> e.g. "What is the best NAV?" got blocked
+  - "better"   -> e.g. "Is the expense ratio better than average?" got blocked
+  - "invest"   -> e.g. "I want to invest, what is the minimum SIP?" got blocked
+  - "buy"      -> too broad
+  - "which fund" -> blocked "Which fund has what benchmark?" type questions
+
+Because the advisory check runs FIRST, as soon as any of these words
+appeared anywhere in the sentence, the chatbot refused the question
+immediately -- without even checking if it was actually factual.
+
+LOGIC EXPLANATION:
+Think of it like a security guard who blocks anyone who says the word
+"money" -- even if the person just wants to ask "how much does the
+entry ticket cost?" The word itself is not the problem; the context is.
+
+WHAT WAS CHANGED?
+The ADVISORY keywords list was made much more specific. Instead of
+blocking single common words, we now block specific multi-word phrases
+that are clearly asking for advice:
+  BEFORE (too broad):   "best", "better", "invest", "buy"
+  AFTER  (specific):    "should i invest", "which is best", "best fund",
+                        "should i buy", "buy or sell", "better option"
+
+This way, "I want to invest, what is the expense ratio?" now passes
+correctly as a FACTUAL question, because "should i invest" is NOT in it.
+
+The FACTUAL keywords list was also expanded so more natural question
+styles are recognized as factual:
+  ADDED: "tell me", "how long", "withdraw", "allocation", "portfolio",
+         "scheme", "what is the", "who runs", "factsheet",
+         "minimum sip", "initial investment", "risk rating", "fund details"
+
+------------------------------------------------------------
+FIX 2 - Retriever: Fund Names That Users Type Were Not Recognised
+File Changed: backend/app/pipeline/retriever.py
+------------------------------------------------------------
+
+WHAT WAS THE PROBLEM?
+The database stores funds by their OFFICIAL AMC (fund company) names:
+  - "HDFC Mid Cap Fund Direct Growth"
+  - "HDFC Large Cap Fund Direct Growth"
+
+But users type the POPULAR GROWW DISPLAY NAMES they see on the website:
+  - "HDFC Mid-Cap Opportunities Fund"  (popular alias for Mid Cap)
+  - "HDFC Top 100 Fund"                (popular alias for Large Cap)
+
+The retriever (the part that searches the database) had no knowledge
+of these aliases. So when a user typed "Top 100 Fund", the retriever
+searched WITHOUT any fund filter, meaning it could pull chunks from any
+of the 5 funds randomly and return the wrong fund's data -- or nothing
+at all.
+
+LOGIC EXPLANATION:
+Imagine a library where books are filed under their official title, but
+a reader asks for a book by its nickname. If the librarian doesn't know
+the nickname, they just search randomly and might bring the wrong book.
+
+WHAT WAS CHANGED?
+A complete alias mapping was added to the SCHEME_ROUTING_MAP dictionary.
+Now when the user types any of these names, the system knows exactly
+which official fund to look up:
+
+  "mid-cap opportunities"  -->  HDFC Mid Cap Fund Direct Growth
+  "opportunities"          -->  HDFC Mid Cap Fund Direct Growth
+  "top 100"                -->  HDFC Large Cap Fund Direct Growth
+  "top100"                 -->  HDFC Large Cap Fund Direct Growth
+  "mid cap"                -->  HDFC Mid Cap Fund Direct Growth
+  "large cap"              -->  HDFC Large Cap Fund Direct Growth
+  "small cap"              -->  HDFC Small Cap Fund Direct Growth
+  "gold etf"               -->  HDFC Gold ETF Fund of Fund Direct Plan Growth
+
+Also removed risky single-letter keywords like the old "mid", "large",
+"small", "etf" that could accidentally match unrelated words in a
+sentence. Replaced them with safer two-word phrases like "mid cap",
+"large cap", "small cap".
+
+------------------------------------------------------------
+FIX 3 - Similarity Threshold: Valid Results Were Being Thrown Away
+File Changed: backend/app/config.py
+------------------------------------------------------------
+
+WHAT WAS THE PROBLEM?
+After the database is searched, the system scores each result on how
+"similar" it is to the user's question. The score goes from 0.0 (no
+match) to 1.0 (perfect match). Any result below the threshold was
+thrown away before the LLM could read it.
+
+The threshold was set at 0.5 (50%).
+
+The problem: The embedding model used (BAAI/bge-large-en-v1.5) gives
+scores in the range of 0.35 to 0.65 for genuinely relevant results when
+the user asks a question in natural language. A threshold of 0.5 was
+cutting off the lower half of real, correct answers.
+
+Example of what was happening:
+  - Query: "How big is the mid cap fund?"
+  - Best matching chunk: "Fund size (AUM): Rs 94,744 Cr"
+  - Similarity score: 0.42  <-- BELOW 0.5, so it was thrown away
+  - Result: Chatbot says "I don't have this information" -- even though
+    the answer was RIGHT THERE in the database!
+
+LOGIC EXPLANATION:
+It is like setting the passing grade for an exam at 80% when the exam is
+so hard that the best students only score 60%. Everyone fails, not
+because they don't know the subject, but because the grading is
+miscalibrated.
+
+WHAT WAS CHANGED?
+  BEFORE: similarity_threshold = 0.5  (50%)
+  AFTER:  similarity_threshold = 0.35 (35%)
+
+This is the industry-standard safe floor for the BGE-large model. It
+still filters out truly irrelevant results (which score below 0.35),
+while allowing genuinely relevant but naturally phrased queries to pass.
+
+------------------------------------------------------------
+FIX 4 - LLM Prompt: AI Was Refusing to Make Simple Logical Inferences
+File Changed: backend/app/pipeline/generator.py
+------------------------------------------------------------
+
+WHAT WAS THE PROBLEM?
+The LLM (the AI that writes the final answer) was given a very strict
+instruction in its system prompt:
+
+  OLD RULE 5:
+  "If the context does not contain enough information to answer,
+  say: I don't have this information in my current sources."
+
+The problem was the phrase "enough information". With temperature=0.0
+(maximum strictness), the AI was refusing to answer even when the
+answer could be clearly inferred from the context.
+
+Example:
+  - User asked: "Does the HDFC Top 100 Fund have an exit load if I
+    redeem within 30 days?"
+  - Context retrieved: "Exit load of 1% if redeemed within 1 year"
+  - Expected answer: "Yes, 30 days is within 1 year, so exit load applies"
+  - Actual answer: "I don't have this information" -- because the
+    context says "1 year", not "30 days" specifically.
+
+Also, the old Rule 7 only mentioned "Mid-Cap Opportunities" as an
+alias example. It did not tell the AI about "Top 100" being the Large
+Cap fund.
+
+WHAT WAS CHANGED?
+  NEW RULE 5 now says: "If the context CLEARLY does not contain the
+  information, say no. However, if the answer can be REASONABLY
+  UNDERSTOOD from the context (for example, inferring that 30 days
+  falls within a 1-year exit load window), you SHOULD answer."
+
+  NEW RULE 7 now explicitly tells the AI:
+  "'Mid-Cap Opportunities' refers to the Mid Cap Fund"
+  "'Top 100' refers to the Large Cap Fund"
+
+This allows the AI to be helpful with simple logic while still refusing
+to make up information that is genuinely not in the database.
+
+------------------------------------------------------------
+SUMMARY: WHAT EACH TEST QUESTION NEEDED TO WORK
+------------------------------------------------------------
+
+Q1: "Expense ratio of HDFC Mid-Cap Opportunities Fund"
+    FIX USED: Fix 2 (alias "opportunities" now maps to Mid Cap fund)
+              Fix 4 (LLM now knows "Mid-Cap Opportunities" = Mid Cap)
+
+Q2: "Min investment and SIP for HDFC Small Cap Fund"
+    STATUS: Was already mostly working. Fix 3 makes it more reliable.
+
+Q3: "HDFC Top 100 Fund exit load within 30 days"
+    FIX USED: Fix 2 (alias "top 100" now maps to Large Cap fund)
+              Fix 4 (LLM now infers 30 days is within 1 year)
+
+Q4: "Riskometer rating for HDFC Small Cap Fund"
+    FIX USED: Fix 1 (added "risk rating" as a factual keyword)
+              Fix 3 (lower threshold means the risk_level chunk is
+                     not dropped even with a 0.42 similarity score)
+
+Q5: "Which benchmark does HDFC Mid-Cap Opportunities Fund track"
+    FIX USED: Fix 2 (alias "opportunities" now maps to Mid Cap fund)
+    NOTE: "track" was ALREADY correctly in the FACTUAL keywords list
+          (not in advisory as originally suspected). The main blocker
+          was the fund alias mismatch.
+
+Q6: "Asset allocation breakdown for HDFC Top 100 Fund"
+    FIX USED: Fix 1 (added "allocation" as factual keyword, so the
+                      question is now at least CLASSIFIED correctly)
+              Fix 2 (alias "top 100" now maps to Large Cap fund)
+    REMAINING LIMITATION: The scraper DOES NOT collect portfolio
+    breakdown data (equity %, debt %, cash %). This information does
+    not exist in the database at all. The chatbot will correctly say
+    "I don't have this information" because the data was never scraped.
+    To fix this fully, the scraper needs to be updated to collect
+    portfolio holding data from Groww's holdings page.
+
+------------------------------------------------------------
+FILES CHANGED IN THIS FIX SESSION
+------------------------------------------------------------
+1. backend/app/pipeline/query_classifier.py
+   - Removed broad advisory words: best, better, invest, investing,
+     buy, sell, which fund, advise
+   - Added specific advisory phrases: should i invest, which is best,
+     which is better, best fund, should i buy, buy or sell, advise me
+   - Added factual keywords: tell me, how long, withdraw, allocation,
+     portfolio, scheme, what is the, what are the, risk rating,
+     who runs, minimum sip, initial investment, factsheet, fund details
+
+2. backend/app/pipeline/retriever.py
+   - Added fund aliases to SCHEME_ROUTING_MAP:
+     top 100 / top100 -> HDFC Large Cap Fund Direct Growth
+     mid-cap opportunities / opportunities -> HDFC Mid Cap Fund Direct Growth
+     mid cap / mid-cap -> HDFC Mid Cap Fund Direct Growth
+     large cap / large-cap -> HDFC Large Cap Fund Direct Growth
+     small cap / small-cap -> HDFC Small Cap Fund Direct Growth
+     gold etf -> HDFC Gold ETF Fund of Fund Direct Plan Growth
+   - Removed risky single-word keys: mid, large, small, etf
+
+3. backend/app/config.py
+   - similarity_threshold: 0.5 -> 0.35
+
+4. backend/app/pipeline/generator.py
+   - Rule 5: Added permission for LLM to make simple logical inferences
+   - Rule 7: Added "Top 100" = Large Cap alias to LLM instructions
+
+============================================================
+END OF FIX LOG
+============================================================

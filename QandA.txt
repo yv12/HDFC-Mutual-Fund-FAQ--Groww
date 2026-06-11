@@ -1,0 +1,39 @@
+=========================================================
+          RAG Chatbot - Technical Q&A Session
+=========================================================
+
+Q1: Why are we using the `openai` Python package in `generator.py`?
+A: The `openai` package is used as an industry-standard client wrapper. Even though OpenAI's own models are paid, the `openai` software library is completely free and open-source. Many other LLM providers (like Groq, xAI's Grok) and local models (like Ollama) are built to be "OpenAI-compatible." By using this package and simply changing the `base_url` parameter, we can easily swap out the AI model without having to rewrite custom HTTP requests or learn a new SDK.
+
+Q2: How many APIs are being used in this project?
+A: There are essentially 4 APIs at play:
+   1. External LLM API: Used via the OpenAI SDK wrapper (e.g., xAI's Grok or Groq) to generate responses.
+   2. HuggingFace Hub API: Used implicitly by the `sentence-transformers` library to download the embedding model weights (BAAI/bge-large-en-v1.5).
+   3. Groww's Web Servers: While not a traditional public API, the scraper makes requests to Groww's endpoints to extract JSON data (`__NEXT_DATA__`) and HTML.
+   4. Internal FastAPI: The backend exposes its own API (`/api/chat`, etc.) for the frontend to consume.
+
+Q3: Is the scraping method based specifically on the website being scraped, or is it similar for every case?
+A: It is highly customized for the specific website (Groww). Web scraping is rarely "one-size-fits-all." The `scraper.py` is tailored to Groww in two ways:
+   1. It targets Next.js's specific hidden `<script id="__NEXT_DATA__">` JSON payload and traverses Groww's exact dictionary structure to get data.
+   2. The fallback methods look for very specific CSS classes (e.g., `[class*='fundDetails_fundDetailsContainer']`). 
+   If Groww changes their site layout or if you point the scraper to a different site, it will break. However, the *strategy* (using Playwright to handle JavaScript and looking for hidden JSON before parsing HTML) is a universal best practice.
+
+Q4: How does the chunking method work, and why was it chosen based on the models?
+A: The project uses "Semantic / Section-Aware Chunking" instead of blindly splitting text every N words. 
+   - Method: The scraper data is reconstructed into logical, self-contained paragraphs (e.g., "Exit Load", "Fund Details"). It also injects the fund's name into every chunk so the LLM always knows which fund it's reading about (preventing context loss).
+   - Embedding Constraints: The `BAAI/bge-large-en-v1.5` model has a 512-token limit. The `chunk_size` is capped around 250 tokens so the text is never truncated and the semantic meaning remains highly concentrated.
+   - LLM Constraints: Sending small, precise chunks keeps the total prompt size small, making LLM responses incredibly fast and cheap while preventing hallucinations.
+
+Q5: How did you decide to retrieve exactly 4 chunks (k=4)? Could it be 3 or 5?
+A: Choosing `k=4` is an empirical decision (tested against realistic questions) to balance Information Density, Noise, and Cost.
+   A single fund is broken into roughly 6-7 chunks. If a user asks a highly complex question like "Tell me the AUM, 3-year returns, exit load, and the fund manager", it requires exactly 4 distinct chunks to answer perfectly.
+   - If k=3: The system drops one chunk and fails to answer part of the question.
+   - If k=5 or 6: The system starts pulling in irrelevant chunks (or chunks from other funds), introducing noise and confusing the LLM.
+   - k=4 hits the sweet spot of 100% coverage for the hardest questions with 0% noise.
+
+Q6: What happens if a user asks a question that requires all 6 chunks (Overview, Details, Exit Load, Managers, Returns, About)?
+A: This exposes the edge-case vulnerability of a fixed-k RAG system. If `k=4`, the system will only retrieve the top 4 chunks and fail to provide the complete answer for the remaining 2 parts. 
+   Advanced systems solve this using:
+   1. Dynamic K: Returning all chunks that pass a similarity score threshold (e.g., >0.5), allowing k to flex from 1 to 10.
+   2. Query Routing: Breaking the user's massive prompt into multiple smaller sub-queries and searching them in parallel.
+   3. Document Retrieval: Fetching a pre-computed "Summary Document" instead of individual chunks.
