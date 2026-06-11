@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-# Install system dependencies for Playwright
+# Install system dependencies for Playwright Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libnss3 \
     libatk1.0-0 \
@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libxext6 \
     libxfixes3 \
     fonts-liberation \
-    wget \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
@@ -31,16 +30,13 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install Playwright Chromium browser
+# Install Playwright Chromium browser binary
 RUN playwright install chromium
-
-# Pre-download the embedding model during build (so it's cached in the image)
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-large-en-v1.5')"
 
 # Copy application code
 COPY . .
 
-# Expose port
+# Expose port (Railway provides PORT env var)
 EXPOSE 8080
 
 # Start the server
