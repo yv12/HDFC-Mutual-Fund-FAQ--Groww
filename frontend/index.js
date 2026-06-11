@@ -1,3 +1,8 @@
+// API base URL — empty for local dev, Railway backend URL for production
+const API_BASE = window.location.hostname === 'localhost'
+    ? ''
+    : 'https://hdfc-faq-backend-production.up.railway.app';
+
 const chatForm = document.getElementById('chat-form');
 const queryInput = document.getElementById('query-input');
 const chatWindow = document.getElementById('chat-window');
@@ -149,7 +154,7 @@ chatForm.addEventListener('submit', async (e) => {
     const typingIndicator = showTyping();
 
     try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch(`${API_BASE}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query })
@@ -221,7 +226,7 @@ syncBtn.addEventListener('click', async () => {
     document.querySelector('.sync-label').textContent = 'Syncing...';
 
     try {
-        const response = await fetch('/api/admin/sync', {
+        const response = await fetch(`${API_BASE}/api/admin/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -232,7 +237,7 @@ syncBtn.addEventListener('click', async () => {
             // Start polling for status
             syncPollInterval = setInterval(async () => {
                 try {
-                    const statusRes = await fetch('/api/admin/sync/status');
+                    const statusRes = await fetch(`${API_BASE}/api/admin/sync/status`);
                     const statusData = await statusRes.json();
 
                     if (!statusData.is_syncing) {
