@@ -39,5 +39,5 @@ COPY . .
 # Expose port (Railway provides PORT env var)
 EXPOSE 8080
 
-# Start the server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Start the server (shell form so $PORT is expanded)
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
