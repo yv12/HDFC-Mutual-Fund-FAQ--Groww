@@ -1,8 +1,8 @@
 # Architecture — Mutual Fund FAQ Assistant
 
-> **Last Updated: 12-Jun-2026** — Embedding model downsize for Railway deployment.
+> **Last Updated: 12-Jun-2026** — Embedding model downsize for Render deployment.
 > Switched from `BAAI/bge-large-en-v1.5` (1024d, ~1.3GB) to `BAAI/bge-small-en-v1.5` (384d, ~130MB)
-> to resolve OOM (Out of Memory) kills on Railway's constrained runtime.
+> to resolve OOM (Out of Memory) kills on Render's constrained 512MB runtime.
 > See previous update: [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for the 11-Jun-2026 bug-fix change log.
 
 ## 1. System Overview
@@ -40,14 +40,13 @@ flowchart TB
 
 ## 1a. Post-Implementation Updates
 
-### 1a.1 — Embedding Model Downsize (12-Jun-2026)
+### 1a.1 — Fix for Render Free Tier (OOM Kills)
 
 > [!IMPORTANT]
-> The embedding model was switched from `BAAI/bge-large-en-v1.5` to `BAAI/bge-small-en-v1.5` to resolve
-> **OOM (Out of Memory) kills** on Railway deployment.
+> **Incident (12-Jun-2026):** The embedding model was downsized to fix **OOM (Out of Memory) kills** on Render Free Tier deployment.
 
 #### What Was Found During Deployment
-After deploying to Railway, every chat query that required embedding (e.g. *"What is the expense ratio of HDFC Mid Cap Fund?"*) caused the container process to be **killed by the OS** (OOM killer). The Railway deployment logs showed a repeating pattern:
+After deploying to Render, every chat query that required embedding (e.g. *"What is the expense ratio of HDFC Mid Cap Fund?"*) caused the container process to be **killed by the OS** (OOM killer). The Render deployment logs showed a repeating pattern:
 
 ```
 Loading embedding model 'BAAI/bge-large-en-v1.5' on device 'cpu' ...
@@ -55,7 +54,7 @@ HTTP Request: HEAD .../model.safetensors "HTTP/1.1 302 Found"
 Killed
 ```
 
-The `bge-large-en-v1.5` model has **335M parameters** and requires **~1.3GB RAM** just for model weights. Combined with PyTorch, ChromaDB, Playwright/Chromium, and the FastAPI process, this exceeded Railway's container memory limit (~512MB–1GB on starter plans).
+The `bge-large-en-v1.5` model has **335M parameters** and requires **~1.3GB RAM** just for model weights. Combined with PyTorch, ChromaDB, Playwright/Chromium, and the FastAPI process, this exceeded Render's Free Tier container memory limit (512MB).
 
 #### Changes Made
 
@@ -64,8 +63,8 @@ The `bge-large-en-v1.5` model has **335M parameters** and requires **~1.3GB RAM*
 | 1 | **Embedding Model** | `config.py` | Switched from `BAAI/bge-large-en-v1.5` (1024d, ~1.3GB) → `BAAI/bge-small-en-v1.5` (384d, ~130MB) | 10× smaller memory footprint. Same BGE model family, same training methodology, compatible with all existing pipeline logic. |
 | 2 | **Startup Preload** | `main.py` | Added `get_embedding_model()` call during FastAPI startup lifespan | Ensures the model is loaded once into memory at boot, avoiding cold-load spikes when the first user request arrives. |
 | 3 | **Docker Build Cache** | `Dockerfile` | Added `RUN python -c "...SentenceTransformer('BAAI/bge-small-en-v1.5')"` step | Pre-downloads the model during image build, eliminating runtime HuggingFace downloads and reducing startup latency. |
-| 4 | **Nixpacks Build** | `nixpacks.toml` | Same model pre-download added to nixpacks install phase | Ensures Railway's nixpacks builder also caches the model in the image. |
-| 5 | **Telemetry** | `Dockerfile`, `nixpacks.toml` | Set `ANONYMIZED_TELEMETRY=false` | Suppresses ChromaDB PostHog telemetry errors (`capture() takes 1 positional argument but 3 were given`) visible in Railway logs. |
+| 4 | **Model Cache** | `Dockerfile` | Same model pre-download added to build phase | Ensures Render's Docker builder caches the model in the image to speed up cold starts. |
+| 5 | **Telemetry** | `Dockerfile` | Set `ANONYMIZED_TELEMETRY=false` | Suppresses ChromaDB PostHog telemetry errors visible in logs. |
 
 > [!NOTE]
 > Since the embedding dimensions changed from 1024 → 384, the existing ChromaDB vector store is incompatible.
@@ -116,7 +115,7 @@ flowchart LR
 | **Web Scraper** | Fetch raw HTML from the 5 pre-approved URLs | Handles dynamic content if Groww uses client-side rendering (headless browser or API-based) |
 | **Content Extractor** | Strip HTML, extract structured data (expense ratio, exit load, fund manager, AUM, etc.) | Preserves source URL as metadata on every extracted block |
 | **Document Chunker** | Split cleaned content into retrieval-friendly chunks | Chunk size: ~300–500 tokens with overlap; each chunk retains its source URL |
-| **Embedding Model** | Convert text chunks into vector embeddings | `BAAI/bge-small-en-v1.5` via sentence-transformers (local, open-source, 384-dim). *Downsized from `bge-large` (1024d) on 12-Jun-2026 due to Railway OOM kills — see §1a.1.* |
+| **Embedding Model** | Convert text chunks into vector embeddings | `BAAI/bge-small-en-v1.5` via sentence-transformers (local, open-source, 384-dim). *Downsized from `bge-large` (1024d) on 12-Jun-2026 due to Render memory limits — see §1a.1.* |
 | **Vector Store** | Store and index embeddings for fast similarity search | Options: ChromaDB (lightweight), Pinecone, FAISS, or Weaviate |
 
 #### Chunk Metadata Schema
@@ -136,7 +135,7 @@ Each chunk stored in the vector store carries metadata to support citation integ
 
 ---
 
-### 2.2 Online Pipeline — Query Processing
+## 2.2 Online Pipeline — Query Processing
 
 Handles each user query in real time.
 
@@ -182,7 +181,7 @@ sequenceDiagram
 
 ---
 
-### 2.3 Citation Validation Flow
+## 2.3 Citation Validation Flow
 
 A dedicated post-processing step that enforces the zero-hallucination link policy.
 
@@ -205,7 +204,7 @@ flowchart TD
 
 ---
 
-### 2.4 Refusal Handling Flow
+## 2.4 Refusal Handling Flow
 
 ```mermaid
 flowchart LR
@@ -271,8 +270,8 @@ flowchart TB
 | **Frontend** | HTML/CSS/JS | Minimal chat UI |
 | **Backend / API** | Python (FastAPI) | Handles query processing, RAG orchestration |
 | **Web Scraping** | BeautifulSoup + Playwright | Playwright for JS-heavy Groww pages |
-| **Embedding Model** | `BAAI/bge-small-en-v1.5` (sentence-transformers) | Local, open-source, zero API cost. *Downsized from `bge-large` on 12-Jun-2026 to fit Railway's memory limits.* |
-| **Vector Store** | ChromaDB | Lightweight, embedded, persistent |
+| **Embedding Model** | `BAAI/bge-small-en-v1.5` (sentence-transformers) | Local, open-source, zero API cost. *Downsized from `bge-large` on 12-Jun-2026 to fit Render's 512MB memory limits.* |
+| **Hosting** | Vercel (FE) + Render (BE) | Free tiers for zero cost hosting. |
 | **LLM** | Local open-source model (Llama 3 / Qwen 2.5) via Ollama | Runs locally, zero API cost; system prompt enforces constraints |
 | **Orchestration** | LangChain | Simplifies RAG pipeline wiring |
 

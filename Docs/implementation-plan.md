@@ -570,8 +570,7 @@ This happened because `BAAI/bge-large-en-v1.5` (335M parameters, ~1.3GB RAM) exc
 | 10.2 | Pre-load embedding model at FastAPI startup (lifespan) to avoid cold-load OOM spikes | `main.py` | ✅ Done |
 | 10.3 | Pre-download model during Docker build to eliminate runtime HuggingFace downloads | `Dockerfile` | ✅ Done |
 | 10.4 | Pre-download model in nixpacks build phase | `nixpacks.toml` | ✅ Done |
-| 10.5 | Disable ChromaDB PostHog telemetry to suppress `capture()` argument errors | `Dockerfile`, `nixpacks.toml` | ✅ Done |
-| 10.6 | Trigger manual sync after deploy to re-index with new 384-dim embeddings | `POST /api/admin/sync` | ⭕ Post-deploy |
+| 10.5 | Trigger manual sync after deploy to re-index with new 384-dim embeddings | `POST /api/admin/sync` | ⭕ Post-deploy |
 
 ### Why `bge-small-en-v1.5` Is Acceptable
 

@@ -1,5 +1,5 @@
-// API base URL — points to Railway backend
-const API_BASE = 'https://hdfc-mutual-fund-faq-groww-production.up.railway.app';
+// API base URL — points to Render backend
+const API_BASE = 'https://hdfc-faq-backend.onrender.com';
 
 const chatForm = document.getElementById('chat-form');
 const queryInput = document.getElementById('query-input');

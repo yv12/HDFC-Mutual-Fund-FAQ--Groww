@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: hdfc-faq-backend
+    env: docker
+    region: singapore
+    plan: free
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: LLM_MODEL
+        value: llama-3.1-8b-instant
+      - key: EMBEDDING_MODEL
+        value: BAAI/bge-small-en-v1.5
+      - key: EMBEDDING_DIMENSIONS
+        value: "384"
+      - key: EMBEDDING_DEVICE
+        value: cpu
+      - key: CHROMA_PERSIST_DIR
+        value: ./chroma_data
+      - key: CHROMA_COLLECTION_NAME
+        value: mutual_fund_faq
+      - key: RETRIEVAL_TOP_K
+        value: "4"
+      - key: SIMILARITY_THRESHOLD
+        value: "0.35"
+      - key: CHUNK_SIZE
+        value: "250"
+      - key: CHUNK_OVERLAP
+        value: "30"
+      - key: RATE_LIMIT_PER_MINUTE
+        value: "20"
+      - key: SCRAPE_TIMEOUT_MS
+        value: "30000"
+      - key: SCRAPE_MAX_RETRIES
+        value: "3"
+      - key: XAI_API_KEY
+        sync: false # Do not commit the secret to git, user must set it in dashboard
+      - key: CORS_ORIGINS
+        sync: false # Set this in the dashboard to match Vercel URL
