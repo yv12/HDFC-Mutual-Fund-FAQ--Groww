@@ -1,8 +1,9 @@
 # Architecture — Mutual Fund FAQ Assistant
 
-> **Last Updated: 11-Jun-2026** — Post-implementation bug-fix update.
-> Key changes were made to the Query Classifier, Retriever, Similarity Threshold, and LLM Prompt.
-> See [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for the full change log with before/after explanations.
+> **Last Updated: 12-Jun-2026** — Embedding model downsize for Railway deployment.
+> Switched from `BAAI/bge-large-en-v1.5` (1024d, ~1.3GB) to `BAAI/bge-small-en-v1.5` (384d, ~130MB)
+> to resolve OOM (Out of Memory) kills on Railway's constrained runtime.
+> See previous update: [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for the 11-Jun-2026 bug-fix change log.
 
 ## 1. System Overview
 
@@ -37,16 +38,52 @@ flowchart TB
 
 ---
 
-## 1a. Post-Implementation Updates (11-Jun-2026)
+## 1a. Post-Implementation Updates
+
+### 1a.1 — Embedding Model Downsize (12-Jun-2026)
+
+> [!IMPORTANT]
+> The embedding model was switched from `BAAI/bge-large-en-v1.5` to `BAAI/bge-small-en-v1.5` to resolve
+> **OOM (Out of Memory) kills** on Railway deployment.
+
+#### What Was Found During Deployment
+After deploying to Railway, every chat query that required embedding (e.g. *"What is the expense ratio of HDFC Mid Cap Fund?"*) caused the container process to be **killed by the OS** (OOM killer). The Railway deployment logs showed a repeating pattern:
+
+```
+Loading embedding model 'BAAI/bge-large-en-v1.5' on device 'cpu' ...
+HTTP Request: HEAD .../model.safetensors "HTTP/1.1 302 Found"
+Killed
+```
+
+The `bge-large-en-v1.5` model has **335M parameters** and requires **~1.3GB RAM** just for model weights. Combined with PyTorch, ChromaDB, Playwright/Chromium, and the FastAPI process, this exceeded Railway's container memory limit (~512MB–1GB on starter plans).
+
+#### Changes Made
+
+| # | Component | File | What Changed | Why |
+|---|---|---|---|---|
+| 1 | **Embedding Model** | `config.py` | Switched from `BAAI/bge-large-en-v1.5` (1024d, ~1.3GB) → `BAAI/bge-small-en-v1.5` (384d, ~130MB) | 10× smaller memory footprint. Same BGE model family, same training methodology, compatible with all existing pipeline logic. |
+| 2 | **Startup Preload** | `main.py` | Added `get_embedding_model()` call during FastAPI startup lifespan | Ensures the model is loaded once into memory at boot, avoiding cold-load spikes when the first user request arrives. |
+| 3 | **Docker Build Cache** | `Dockerfile` | Added `RUN python -c "...SentenceTransformer('BAAI/bge-small-en-v1.5')"` step | Pre-downloads the model during image build, eliminating runtime HuggingFace downloads and reducing startup latency. |
+| 4 | **Nixpacks Build** | `nixpacks.toml` | Same model pre-download added to nixpacks install phase | Ensures Railway's nixpacks builder also caches the model in the image. |
+| 5 | **Telemetry** | `Dockerfile`, `nixpacks.toml` | Set `ANONYMIZED_TELEMETRY=false` | Suppresses ChromaDB PostHog telemetry errors (`capture() takes 1 positional argument but 3 were given`) visible in Railway logs. |
+
+> [!NOTE]
+> Since the embedding dimensions changed from 1024 → 384, the existing ChromaDB vector store is incompatible.
+> A manual sync (`POST /api/admin/sync`) must be triggered after the first deploy to re-index all chunks
+> with the new 384-dimensional embeddings. The sync pipeline calls `reset_store()` automatically.
+
+---
+
+### 1a.2 — Pipeline Bug Fixes (11-Jun-2026)
 
 > [!IMPORTANT]
 > The following changes were made after real-world Q&A testing revealed that the bot was incorrectly returning
 > *"I don't have this information"* for valid factual questions. Full details in [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt).
 
-### What Was Found During Testing
+#### What Was Found During Testing
 Six test questions were run against the deployed bot. Four of them failed — not because the data was missing from the database, but because bugs in the classifier, retriever, and configuration were silently blocking or discarding valid answers before the LLM ever saw them.
 
-### Changes Made
+#### Changes Made
 
 | # | Component | File | What Changed | Why |
 |---|---|---|---|---|
@@ -79,7 +116,7 @@ flowchart LR
 | **Web Scraper** | Fetch raw HTML from the 5 pre-approved URLs | Handles dynamic content if Groww uses client-side rendering (headless browser or API-based) |
 | **Content Extractor** | Strip HTML, extract structured data (expense ratio, exit load, fund manager, AUM, etc.) | Preserves source URL as metadata on every extracted block |
 | **Document Chunker** | Split cleaned content into retrieval-friendly chunks | Chunk size: ~300–500 tokens with overlap; each chunk retains its source URL |
-| **Embedding Model** | Convert text chunks into vector embeddings | `BAAI/bge-large-en-v1.5` via sentence-transformers (local, open-source, 1024-dim) |
+| **Embedding Model** | Convert text chunks into vector embeddings | `BAAI/bge-small-en-v1.5` via sentence-transformers (local, open-source, 384-dim). *Downsized from `bge-large` (1024d) on 12-Jun-2026 due to Railway OOM kills — see §1a.1.* |
 | **Vector Store** | Store and index embeddings for fast similarity search | Options: ChromaDB (lightweight), Pinecone, FAISS, or Weaviate |
 
 #### Chunk Metadata Schema
@@ -192,7 +229,7 @@ flowchart LR
 | **Scraping** | 5 Groww URLs | Raw HTML | Only pre-approved URLs |
 | **Extraction** | Raw HTML | Structured text + metadata | Source URL preserved per block |
 | **Chunking** | Structured text | Chunks (~250 tokens, 30-token overlap) | Section-aware; each chunk is self-contained |
-| **Embedding** | Text chunks | Vector embeddings (1024-dim) | Deterministic, reproducible |
+| **Embedding** | Text chunks | Vector embeddings (384-dim) | Deterministic, reproducible. *Downsized from 1024-dim on 12-Jun-2026.* |
 | **Indexing** | Vectors + metadata | Vector store entries | Metadata includes `source_url`, `scraped_at` |
 | **Retrieval** | User query vector | Top-4 chunks above similarity ≥ 0.35 | Cosine similarity with alias-aware fund routing *(threshold lowered 11-Jun-2026)* |
 | **Generation** | Query + context | Draft response | ≤ 3 sentences, facts only, logical inference allowed *(prompt updated 11-Jun-2026)* |
@@ -234,7 +271,7 @@ flowchart TB
 | **Frontend** | HTML/CSS/JS | Minimal chat UI |
 | **Backend / API** | Python (FastAPI) | Handles query processing, RAG orchestration |
 | **Web Scraping** | BeautifulSoup + Playwright | Playwright for JS-heavy Groww pages |
-| **Embedding Model** | `BAAI/bge-large-en-v1.5` (sentence-transformers) | Local, open-source, zero API cost |
+| **Embedding Model** | `BAAI/bge-small-en-v1.5` (sentence-transformers) | Local, open-source, zero API cost. *Downsized from `bge-large` on 12-Jun-2026 to fit Railway's memory limits.* |
 | **Vector Store** | ChromaDB | Lightweight, embedded, persistent |
 | **LLM** | Local open-source model (Llama 3 / Qwen 2.5) via Ollama | Runs locally, zero API cost; system prompt enforces constraints |
 | **Orchestration** | LangChain | Simplifies RAG pipeline wiring |

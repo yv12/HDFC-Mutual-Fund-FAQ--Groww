@@ -1,5 +1,5 @@
 """
-Embedding generation module — local BGE-large-en-v1.5 via sentence-transformers.
+Embedding generation module — local BGE-small-en-v1.5 via sentence-transformers.
 
 Provides functions to generate vector embeddings for text chunks (indexing)
 and user queries (retrieval). Runs entirely locally with zero API costs.
@@ -62,7 +62,7 @@ def embed_query(query: str) -> list[float]:
     Generate embedding for a single search query.
     Prepends the required asymmetric search instruction prefix for BGE models.
     """
-    # BGE-large-en-v1.5 requires this prefix for queries to search effectively
+    # BGE v1.5 models require this prefix for queries to search effectively
     prefix = "Represent this sentence for searching relevant passages: "
     full_query = f"{prefix}{query}"
     

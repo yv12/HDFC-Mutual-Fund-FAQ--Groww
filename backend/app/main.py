@@ -16,6 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.api.routes import router as api_router
 from app.ingestion.scheduler import start_scheduler, stop_scheduler
+from app.ingestion.embedder import get_embedding_model
 
 import sys
 import asyncio
@@ -37,6 +38,12 @@ async def lifespan(app: FastAPI):
     print(f"  CORS Origins     : {settings.cors_origin_list}")
     print(f"  Rate Limit       : {settings.rate_limit_per_minute} req/min")
     print("=" * 60)
+
+    # Pre-load embedding model at startup to avoid cold-load OOM spikes on first request
+    print("  Pre-loading embedding model...")
+    get_embedding_model()
+    print("  ✓ Embedding model ready.")
+
     start_scheduler()
     yield
     # ── Shutdown ──────────────────────────────────────────────────

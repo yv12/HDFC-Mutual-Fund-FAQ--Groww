@@ -29,9 +29,9 @@ class Settings(BaseSettings):
     # ── Model Configuration ───────────────────────────────────────
     llm_model: str = "grok-3-mini"
 
-    # ── Embedding (local BGE-large-en-v1.5) ───────────────────────
-    embedding_model: str = "BAAI/bge-large-en-v1.5"
-    embedding_dimensions: int = 1024
+    # ── Embedding (local BGE-small-en-v1.5) ───────────────────────
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
+    embedding_dimensions: int = 384
     embedding_device: str = "cpu"  # "cpu" or "cuda"
 
     # ── Vector Store ──────────────────────────────────────────────

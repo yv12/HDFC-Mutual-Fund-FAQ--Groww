@@ -6,8 +6,8 @@ from app.config import settings
 def test_settings_defaults():
     """Settings should load with sensible defaults even without a .env file."""
     assert settings.llm_model == "grok-3-mini"
-    assert settings.embedding_model == "BAAI/bge-large-en-v1.5"
-    assert settings.embedding_dimensions == 1024
+    assert settings.embedding_model == "BAAI/bge-small-en-v1.5"
+    assert settings.embedding_dimensions == 384
     assert settings.embedding_device == "cpu"
     assert settings.xai_base_url == "https://api.x.ai/v1"
     assert settings.chroma_collection_name == "mutual_fund_faq"

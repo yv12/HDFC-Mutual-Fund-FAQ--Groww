@@ -20,4 +20,11 @@ aptPkgs = [
 ]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt", "playwright install chromium"]
+cmds = [
+    "pip install -r requirements.txt",
+    "playwright install chromium",
+    "python -c \"from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')\""
+]
+
+[variables]
+ANONYMIZED_TELEMETRY = "false"

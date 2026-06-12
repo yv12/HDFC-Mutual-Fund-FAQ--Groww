@@ -13,24 +13,24 @@ def test_model_lazy_loading():
 
 
 def test_embed_texts():
-    """Verify text batch embedding produces standard float list representation with 1024 dimensions."""
+    """Verify text batch embedding produces standard float list representation with 384 dimensions."""
     texts = ["HDFC Mid Cap Fund is an equity mutual fund.", "Exit load is 1% within 1 year."]
     embeddings = embed_texts(texts)
     
     assert len(embeddings) == len(texts)
     for emb in embeddings:
         assert isinstance(emb, list)
-        assert len(emb) == 1024  # BGE-large-en-v1.5 standard dimensions
+        assert len(emb) == 384  # BGE-small-en-v1.5 standard dimensions
         assert all(isinstance(x, float) for x in emb)
 
 
 def test_embed_query():
-    """Verify query embedding prepends instruction prefix and generates 1024 dimensional vector."""
+    """Verify query embedding prepends instruction prefix and generates 384 dimensional vector."""
     query = "Who is the fund manager?"
     emb = embed_query(query)
     
     assert isinstance(emb, list)
-    assert len(emb) == 1024
+    assert len(emb) == 384
     assert all(isinstance(x, float) for x in emb)
 
 

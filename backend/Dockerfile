@@ -33,6 +33,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Install Playwright Chromium browser binary
 RUN playwright install chromium
 
+# Pre-download the embedding model during build to avoid runtime downloads
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en-v1.5')"
+
+# Disable anonymous telemetry to avoid posthog errors in logs
+ENV ANONYMIZED_TELEMETRY=false
+
 # Copy application code
 COPY . .
 

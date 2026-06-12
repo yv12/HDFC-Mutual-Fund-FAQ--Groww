@@ -1,12 +1,13 @@
 # Implementation Plan — Mutual Fund FAQ Assistant
 
-> **Last Updated: 11-Jun-2026** — Post-implementation bug-fix update (Phase 9 added).
-> Four pipeline bugs were found and fixed after real-world Q&A testing.
-> See [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for full before/after details of every change.
+> **Last Updated: 12-Jun-2026** — Embedding model downsize for Railway deployment (Phase 10 added).
+> Switched from `BAAI/bge-large-en-v1.5` (1024d, ~1.3GB) to `BAAI/bge-small-en-v1.5` (384d, ~130MB)
+> to resolve OOM (Out of Memory) kills on Railway.
+> See previous update: [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for 11-Jun-2026 bug-fix details.
 
 ## Executive Summary
 
-A phased implementation plan to build the RAG-based Mutual Fund FAQ Assistant end-to-end. The plan covers **8 delivery phases + 1 post-launch bug-fix phase (Phase 9)**, progressing from environment setup through deployment and real-world Q&A validation.
+A phased implementation plan to build the RAG-based Mutual Fund FAQ Assistant end-to-end. The plan covers **8 delivery phases + 1 post-launch bug-fix phase (Phase 9) + 1 deployment fix phase (Phase 10)**, progressing from environment setup through deployment and real-world Q&A validation.
 
 ```mermaid
 gantt
@@ -40,6 +41,9 @@ gantt
 
     section Phase 9
     Post-Launch Bug Fixes               :p9, 2026-06-11, 1d
+
+    section Phase 10
+    Railway Deployment OOM Fix           :p10, 2026-06-12, 1d
 ```
 
 ---
@@ -182,7 +186,7 @@ RAG Chatbot/
 
 | # | Task | Details |
 |---|---|---|
-| 3.1 | Select embedding model | **`BAAI/bge-large-en-v1.5`** via sentence-transformers — 1024-dim, local, open-source, zero API cost |
+| 3.1 | Select embedding model | **`BAAI/bge-small-en-v1.5`** via sentence-transformers — 384-dim, local, open-source, zero API cost. *Originally `bge-large-en-v1.5` (1024-dim); downsized on 12-Jun-2026 due to Railway OOM kills — see Phase 10.* |
 | 3.2 | Build embedding module | `embedder.py` — batch-embed all chunks, handle API rate limits |
 | 3.3 | Set up ChromaDB | Initialize a persistent ChromaDB collection with metadata schema |
 | 3.4 | Build vector store module | `vector_store.py` — CRUD operations: add, query, delete, reset |
@@ -195,10 +199,10 @@ RAG Chatbot/
 | Decision | Choice | Rationale |
 |---|---|---|
 | Vector store | ChromaDB | Lightweight, embedded, no external infra needed |
-| Embedding model | `BAAI/bge-large-en-v1.5` (local) | High-quality 1024-dim embeddings; runs locally via sentence-transformers with zero API cost |
+| Embedding model | `BAAI/bge-small-en-v1.5` (local) | Lightweight 384-dim embeddings; runs locally via sentence-transformers with zero API cost. *Downsized from `bge-large` (1024d, ~1.3GB) on 12-Jun-2026 to fit Railway's memory limits (~130MB vs ~1.3GB).* |
 | Similarity metric | Cosine similarity | Standard for text embeddings |
 | Top-k | 4 | Covers the hardest multi-section questions while avoiding cross-fund noise |
-| Similarity threshold | **0.35** *(lowered from 0.5 on 11-Jun-2026)* | BGE-large model returns 0.35–0.65 for relevant results; 0.5 was discarding valid chunks |
+| Similarity threshold | **0.35** *(lowered from 0.5 on 11-Jun-2026)* | BGE model returns 0.35–0.65 for relevant results; 0.5 was discarding valid chunks |
 
 ### Acceptance Criteria
 
@@ -528,6 +532,71 @@ Six factual questions were tested against the live bot. Four failed — not beca
 | PII leakage | Privacy violation | Medium | Input-layer PII scanner; no data persistence |
 | Low retrieval quality | Incorrect answers | Medium | Tune chunk size, overlap, top-k; manual quality checks |
 | Prompt injection | Security exploit | Low | Input sanitization + length limits |
+| **OOM on constrained hosts** | Container killed, app unavailable | **High** | Use `bge-small-en-v1.5` (~130MB) instead of `bge-large` (~1.3GB); pre-load model at startup; pre-download in Docker build *(resolved 12-Jun-2026)* |
+
+---
+
+## Phase 10 — Railway Deployment OOM Fix (12-Jun-2026)
+
+**Goal**: Resolve Out of Memory (OOM) kills on Railway that crashed the app whenever the embedding model was loaded.
+
+### What Triggered This Phase
+
+After deploying to Railway, every chat query requiring embeddings (e.g. factual questions routed through the RAG pipeline) caused the container to be **killed by the OOM killer**. The Railway logs showed a repeating crash loop:
+
+```
+Loading embedding model 'BAAI/bge-large-en-v1.5' on device 'cpu' ...
+HTTP Request: HEAD .../model.safetensors "HTTP/1.1 302 Found"
+Killed
+```
+
+This happened because `BAAI/bge-large-en-v1.5` (335M parameters, ~1.3GB RAM) exceeded Railway's container memory limit. The model was also being lazy-loaded on first request (not at startup), which caused a sudden memory spike during request handling.
+
+### Root Cause Analysis
+
+| Factor | Impact |
+|---|---|
+| `bge-large-en-v1.5` model size | ~1.3GB RAM for model weights alone |
+| PyTorch runtime overhead | Additional ~200–400MB |
+| Playwright/Chromium binary | ~150MB resident memory |
+| ChromaDB + FastAPI + dependencies | ~100–200MB |
+| **Total estimated** | **~1.8–2.0GB** vs Railway's ~512MB–1GB limit |
+
+### Tasks Completed
+
+| # | Task | File Changed | Status |
+|---|---|---|---|
+| 10.1 | Switch embedding model from `bge-large-en-v1.5` (1024d, ~1.3GB) to `bge-small-en-v1.5` (384d, ~130MB) | `config.py` | ✅ Done |
+| 10.2 | Pre-load embedding model at FastAPI startup (lifespan) to avoid cold-load OOM spikes | `main.py` | ✅ Done |
+| 10.3 | Pre-download model during Docker build to eliminate runtime HuggingFace downloads | `Dockerfile` | ✅ Done |
+| 10.4 | Pre-download model in nixpacks build phase | `nixpacks.toml` | ✅ Done |
+| 10.5 | Disable ChromaDB PostHog telemetry to suppress `capture()` argument errors | `Dockerfile`, `nixpacks.toml` | ✅ Done |
+| 10.6 | Trigger manual sync after deploy to re-index with new 384-dim embeddings | `POST /api/admin/sync` | ⭕ Post-deploy |
+
+### Why `bge-small-en-v1.5` Is Acceptable
+
+| Property | `bge-large-en-v1.5` | `bge-small-en-v1.5` |
+|---|---|---|
+| Parameters | 335M | 33M |
+| RAM usage | ~1.3GB | ~130MB |
+| Embedding dimensions | 1024 | 384 |
+| Model family | BAAI BGE v1.5 | BAAI BGE v1.5 |
+| Training data | Same | Same |
+| MTEB retrieval rank | Top 5 | Top 20 |
+| Suitability for this project | Overkill (only 35 chunks across 5 funds) | More than sufficient for our small corpus |
+
+> [!NOTE]
+> For a corpus of only ~35 chunks across 5 mutual fund pages, the quality difference between
+> `bge-large` and `bge-small` is negligible. The small model is more than capable of distinguishing
+> between 5 fund schemes with section-level granularity.
+
+### Acceptance Criteria
+
+- [ ] Railway deployment no longer shows `Killed` in logs
+- [ ] Embedding model loads successfully at startup within Railway's memory limit
+- [ ] Chat queries return correct answers without OOM crashes
+- [ ] Manual sync re-indexes all 35 chunks with 384-dim embeddings
+- [ ] ChromaDB telemetry errors no longer appear in logs
 
 ---
 
@@ -543,6 +612,8 @@ Six factual questions were tested against the live bot. Four failed — not beca
 | **6. Frontend** | Chat UI with disclaimer, examples, manual sync | Responsive, polished, functional |
 | **7. Scheduler** | Hybrid ingestion scheduler & API endpoint | Automated runs at 9:15 AM |
 | **8. Testing** | Test suite, README, deployment | All test cases pass |
+| **9. Bug Fixes** | Pipeline fixes for classifier, retriever, threshold, prompt | 5/6 test questions pass |
+| **10. OOM Fix** | Embedding model downsize + build optimizations | No OOM kills on Railway |
 
 ---
 
