@@ -5,9 +5,18 @@ Run with:
     uvicorn app.main:app --reload
 """
 
+import torch
+import os
+import sys
+import asyncio
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
+# Limit PyTorch to 1 thread to aggressively save memory on 512MB Render tier
+torch.set_num_threads(1)
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
