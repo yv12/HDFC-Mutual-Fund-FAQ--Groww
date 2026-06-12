@@ -1,5 +1,5 @@
 // API base URL — points to Render backend
-const API_BASE = 'https://hdfc-faq-backend.onrender.com';
+const API_BASE = 'https://hdfc-mutual-fund-rag-chatbot-groww.onrender.com';
 
 const chatForm = document.getElementById('chat-form');
 const queryInput = document.getElementById('query-input');
