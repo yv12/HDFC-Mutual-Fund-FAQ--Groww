@@ -36,7 +36,7 @@ async def chat(request: ChatRequest):
       (retrieve → generate → validate citation) OR refusal → respond
     """
     import app.ingestion.scheduler as scheduler
-    if scheduler.IS_SYNCING:
+    if scheduler.get_is_syncing():
         logger.warning("Chat query rejected because knowledge base sync is in progress.")
         return ChatResponse(
             answer="The knowledge base is currently being updated. Please try again in a few minutes.",
@@ -137,6 +137,6 @@ async def manual_sync(background_tasks: BackgroundTasks):
 @router.get("/admin/sync/status", tags=["Admin"])
 async def sync_status():
     """Check if the knowledge base is currently syncing."""
-    return {"is_syncing": scheduler_module.IS_SYNCING}
+    return {"is_syncing": scheduler_module.get_is_syncing()}
 
 
