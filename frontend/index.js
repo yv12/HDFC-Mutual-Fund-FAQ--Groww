@@ -2,8 +2,6 @@ const chatForm = document.getElementById('chat-form');
 const queryInput = document.getElementById('query-input');
 const chatWindow = document.getElementById('chat-window');
 const sendBtn = document.getElementById('send-btn');
-const syncBtn = document.getElementById('sync-btn');
-const syncStatus = document.getElementById('sync-status');
 const chatArea = document.getElementById('chat-area');
 const syncOverlay = document.getElementById('sync-overlay');
 
@@ -210,71 +208,4 @@ chatForm.addEventListener('submit', async (e) => {
     }
 });
 
-// ============================================
-// ADMIN SYNC
-// ============================================
-let syncPollInterval = null;
 
-syncBtn.addEventListener('click', async () => {
-    syncBtn.classList.add('loading');
-    syncBtn.disabled = true;
-    syncStatus.classList.remove('hidden', 'success', 'error');
-    syncStatus.textContent = 'Syncing...';
-
-    // Blur the chat
-    chatArea.classList.add('blur-active');
-    syncOverlay.classList.remove('hidden');
-
-    // Update sync button text
-    document.querySelector('.sync-label').textContent = 'Syncing...';
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/admin/sync`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            // Start polling for status
-            syncPollInterval = setInterval(async () => {
-                try {
-                    const statusRes = await fetch(`${API_BASE_URL}/api/admin/sync/status`);
-                    const statusData = await statusRes.json();
-
-                    if (!statusData.is_syncing) {
-                        clearInterval(syncPollInterval);
-                        syncStatus.textContent = '✅ Sync completed successfully!';
-                        syncStatus.classList.add('success');
-
-                        // Unblur chat
-                        chatArea.classList.remove('blur-active');
-                        syncOverlay.classList.add('hidden');
-
-                        // Reset button
-                        document.querySelector('.sync-label').textContent = 'Sync Knowledge Base';
-                        setTimeout(() => {
-                            syncBtn.classList.remove('loading');
-                            syncBtn.disabled = false;
-                        }, 1000);
-                    }
-                } catch (e) {
-                    console.error("Error polling sync status:", e);
-                }
-            }, 2000);
-        } else {
-            throw new Error(data.detail || 'Failed to trigger sync');
-        }
-    } catch (error) {
-        syncStatus.textContent = `❌ Error: ${error.message}`;
-        syncStatus.classList.add('error');
-        syncBtn.classList.remove('loading');
-        syncBtn.disabled = false;
-        document.querySelector('.sync-label').textContent = 'Sync Knowledge Base';
-
-        // Unblur chat on error
-        chatArea.classList.remove('blur-active');
-        syncOverlay.classList.add('hidden');
-    }
-});
