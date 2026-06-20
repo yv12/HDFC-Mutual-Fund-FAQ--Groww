@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from typing import Sequence
 
 from app.config import settings
-from app.scraper.scraper import ScrapedFund
+from app.scraper.models import ScrapedFund
 
 # ---------------------------------------------------------------------------
 # Data model
