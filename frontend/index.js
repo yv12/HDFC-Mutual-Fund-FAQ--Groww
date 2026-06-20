@@ -7,6 +7,14 @@ const syncStatus = document.getElementById('sync-status');
 const chatArea = document.getElementById('chat-area');
 const syncOverlay = document.getElementById('sync-overlay');
 
+// ============================================
+// CONFIGURATION
+// ============================================
+// Replace this with your actual Railway backend URL
+// Example: const API_BASE_URL = 'https://hdfc-mutual-fund-faq--groww.up.railway.app';
+// If it's an empty string '', it uses the current domain.
+const API_BASE_URL = 'https://hdfc-mutual-fund-faq-groww-production.up.railway.app';
+
 // Helper to set query from example cards
 function setQuery(text) {
     queryInput.value = text;
@@ -149,7 +157,7 @@ chatForm.addEventListener('submit', async (e) => {
     const typingIndicator = showTyping();
 
     try {
-        const response = await fetch('/api/chat', {
+        const response = await fetch(`${API_BASE_URL}/api/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ query })
@@ -221,7 +229,7 @@ syncBtn.addEventListener('click', async () => {
     document.querySelector('.sync-label').textContent = 'Syncing...';
 
     try {
-        const response = await fetch('/api/admin/sync', {
+        const response = await fetch(`${API_BASE_URL}/api/admin/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
         });
@@ -232,7 +240,7 @@ syncBtn.addEventListener('click', async () => {
             // Start polling for status
             syncPollInterval = setInterval(async () => {
                 try {
-                    const statusRes = await fetch('/api/admin/sync/status');
+                    const statusRes = await fetch(`${API_BASE_URL}/api/admin/sync/status`);
                     const statusData = await statusRes.json();
 
                     if (!statusData.is_syncing) {
