@@ -1,0 +1,24 @@
+# ─── Exclude from Docker build context ───
+.git
+.gitignore
+Docs/
+stitch/
+*.md
+QandA.txt
+example_scrape_and_chunk.txt
+
+# Backend exclusions
+backend/chroma_data/
+backend/tests/
+backend/scripts/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/**/__pycache__/
+backend/.env
+backend/venv/
+backend/*.egg-info/
+
+# Python bytecode
+**/__pycache__/
+**/*.pyc
+**/*.pyo

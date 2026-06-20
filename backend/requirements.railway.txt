@@ -1,0 +1,32 @@
+# ─────────────────────────────────────────────────────────────────
+# Railway Free Plan — Slim Dependencies
+# ─────────────────────────────────────────────────────────────────
+# This file excludes heavy local-only packages:
+#   - sentence-transformers + PyTorch (~1.5 GB) → replaced by HuggingFace Inference API
+#   - chromadb (~50 MB)                         → replaced by Qdrant Cloud
+#   - playwright (~300 MB)                      → scraping runs locally before deploy
+#   - apscheduler                               → cron jobs not allowed on Railway
+#   - langchain / langchain-community           → not used in serving path
+#   - testing packages                          → not needed in production
+# ─────────────────────────────────────────────────────────────────
+
+# ─── Web Framework ───
+fastapi==0.115.9
+uvicorn[standard]==0.34.3
+gunicorn>=23.0.0
+
+# ─── Vector Store (Qdrant Cloud) ───
+qdrant-client>=1.9.0
+
+# ─── LLM (Groq API via OpenAI SDK) ───
+openai==1.86.0
+
+# ─── Embeddings (HuggingFace Inference API) ───
+huggingface-hub>=0.23.0
+
+# ─── Utilities ───
+python-dotenv==1.1.0
+pydantic==2.11.3
+pydantic-settings==2.9.1
+pytz==2024.1
+requests==2.32.3

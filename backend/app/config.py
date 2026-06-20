@@ -29,14 +29,28 @@ class Settings(BaseSettings):
     # ── Model Configuration ───────────────────────────────────────
     llm_model: str = "grok-3-mini"
 
-    # ── Embedding (local BGE-large-en-v1.5) ───────────────────────
+    # ── Embedding ─────────────────────────────────────────────────
+    # Provider: "local" (sentence-transformers) or "api" (HuggingFace Inference API)
+    embedding_provider: str = "local"
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_dimensions: int = 1024
-    embedding_device: str = "cpu"  # "cpu" or "cuda"
+    embedding_device: str = "cpu"  # "cpu" or "cuda" (only used when provider="local")
 
-    # ── Vector Store ──────────────────────────────────────────────
+    # ── HuggingFace Inference API (used when embedding_provider="api") ──
+    hf_api_token: str = ""
+
+    # ── Vector Store Provider ─────────────────────────────────────
+    # Provider: "chroma" (local ChromaDB) or "qdrant" (Qdrant Cloud)
+    vector_db_provider: str = "chroma"
+
+    # ── ChromaDB (used when vector_db_provider="chroma") ──────────
     chroma_persist_dir: str = str(_BACKEND_DIR / "chroma_data")
     chroma_collection_name: str = "mutual_fund_faq"
+
+    # ── Qdrant Cloud (used when vector_db_provider="qdrant") ──────
+    qdrant_url: str = ""
+    qdrant_api_key: str = ""
+    qdrant_collection_name: str = "mutual_fund_faq"
 
     # ── Retrieval ─────────────────────────────────────────────────
     retrieval_top_k: int = 4
@@ -57,6 +71,9 @@ class Settings(BaseSettings):
     # ── Scraping ──────────────────────────────────────────────────
     scrape_timeout_ms: int = 30000
     scrape_max_retries: int = 3
+
+    # ── Scheduler ─────────────────────────────────────────────────
+    enable_scheduler: bool = True  # Set to False on Railway (no cron allowed)
 
     # ── Computed helpers ──────────────────────────────────────────
 

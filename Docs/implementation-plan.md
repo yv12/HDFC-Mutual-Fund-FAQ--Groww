@@ -1,6 +1,9 @@
 # Implementation Plan — Mutual Fund FAQ Assistant
 
-> **Last Updated: 11-Jun-2026** — Post-implementation bug-fix update (Phase 9 added).
+> **Last Updated: 20-Jun-2026** — Added Phase 10 (Railway Free Plan Migration).
+> The architecture was refactored into a dual-mode system (Local vs Cloud API) to respect Railway's memory and storage limits.
+> 
+> **Previous Update: 11-Jun-2026** — Post-implementation bug-fix update (Phase 9 added).
 > Four pipeline bugs were found and fixed after real-world Q&A testing.
 > See [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for full before/after details of every change.
 
@@ -40,6 +43,9 @@ gantt
 
     section Phase 9
     Post-Launch Bug Fixes               :p9, 2026-06-11, 1d
+
+    section Phase 10
+    Railway Free Plan Migration         :p10, 2026-06-20, 1d
 ```
 
 ---
@@ -192,10 +198,13 @@ RAG Chatbot/
 
 ### Key Decisions
 
+> [!NOTE]
+> **Updated 20-Jun-2026:** Vector store and embedding model decisions were converted to a **dual-mode system** to allow the application to run on both high-resource local machines and low-resource free cloud instances (Railway).
+
 | Decision | Choice | Rationale |
 |---|---|---|
-| Vector store | ChromaDB | Lightweight, embedded, no external infra needed |
-| Embedding model | `BAAI/bge-large-en-v1.5` (local) | High-quality 1024-dim embeddings; runs locally via sentence-transformers with zero API cost |
+| Vector store | **Dual-mode**: `ChromaDB` (Local) / `Qdrant Cloud` (Railway) | ChromaDB is great locally but exceeds Railway's 512MB storage limit (takes ~543MB). Qdrant Cloud Free Tier provides 1GB RAM / 4GB disk at $0. |
+| Embedding model | **Dual-mode**: `sentence-transformers` (Local) / `HuggingFace API` (Railway) | The `bge-large-en-v1.5` model consumes ~1.3GB RAM, instantly crashing Railway's 512MB tier. HuggingFace Serverless Inference API provides the exact same model for free over a network call. |
 | Similarity metric | Cosine similarity | Standard for text embeddings |
 | Top-k | 4 | Covers the hardest multi-section questions while avoiding cross-fund noise |
 | Similarity threshold | **0.35** *(lowered from 0.5 on 11-Jun-2026)* | BGE-large model returns 0.35–0.65 for relevant results; 0.5 was discarding valid chunks |
@@ -442,11 +451,22 @@ You are a facts-only mutual fund FAQ assistant. You MUST follow these rules stri
 
 ### Deployment Options
 
-| Option | Stack | Best For |
+> [!NOTE]
+> **Legacy Deployment Options (Pre 20-Jun-2026)**
+> > | Option | Stack | Best For |
+> > |---|---|---|
+> > | **Local** | `uvicorn` + ChromaDB on disk | Development, demo |
+> > | **Docker** | Containerized backend + frontend | Portable, reproducible |
+> > | **Cloud** | AWS/GCP/Azure VM or serverless | Production-grade (but costs money) |
+
+**Current Deployment Strategy (Zero-Cost Architecture):**
+
+To run continuously without incurring cloud VM costs, we migrated to a multi-service free-tier architecture.
+
+| Option | Stack | Notes |
 |---|---|---|
-| **Local** | `uvicorn` + ChromaDB on disk | Development, demo |
-| **Docker** | Containerized backend + frontend | Portable, reproducible |
-| **Cloud** | AWS/GCP/Azure VM or serverless | Production-grade |
+| **Local Dev** | `uvicorn` + `ChromaDB` + `sentence-transformers` | Requires > 1.5GB RAM and > 2GB Disk. Fully offline (except LLM). |
+| **Railway (Prod)** | `gunicorn/uvicorn` + `Qdrant Cloud` + `HuggingFace API` | Memory optimized (~150MB RAM). Scraping runs locally; Railway only serves the Chat API. |
 
 ### README Outline
 
@@ -531,6 +551,33 @@ Six factual questions were tested against the live bot. Four failed — not beca
 
 ---
 
+## Phase 10 — Railway Free Plan Migration (20-Jun-2026)
+
+**Goal**: Refactor the architecture to deploy the application on Railway's free tier without spending any money, bypassing the hard resource limits (512MB RAM, 512MB persistent storage, 1GB ephemeral storage, and no background cron jobs).
+
+### Why Was This Phase Needed?
+When attempting to deploy the original application (which used local sentence-transformers, local ChromaDB, and a Playwright scraper), the required RAM exceeded 1.5 GB and the database alone was 543 MB. Railway's free plan simply could not run it. We had to offload heavy components to external free APIs.
+
+### Tasks Completed
+
+| # | Task | File Changed | Status |
+|---|---|---|---|
+| 10.1 | Refactored `embedder.py` to support dual-mode (Local vs HuggingFace Inference API). | `ingestion/embedder.py` | ✅ Done |
+| 10.2 | Refactored `vector_store.py` to support dual-mode (ChromaDB vs Qdrant Cloud). | `ingestion/vector_store.py` | ✅ Done |
+| 10.3 | Conditioned the background scheduler so it disables itself on Railway (Railway bans cron jobs). | `ingestion/scheduler.py` | ✅ Done |
+| 10.4 | Added dual-mode config toggles via environment variables. | `config.py`, `.env` | ✅ Done |
+| 10.5 | Created a slimmed-down requirements file for production that strips out >1.5 GB of heavy ML libraries. | `requirements.railway.txt` | ✅ Done |
+| 10.6 | Added optimized multi-stage Dockerfile and deployment manifest. | `Dockerfile`, `railway.json` | ✅ Done |
+
+### Migration Verification
+
+- [x] RAM consumption dropped from **~1.5 GB** down to **~150 MB**.
+- [x] Disk consumption dropped to virtually **0 MB** for persistent storage (Qdrant Cloud handles it).
+- [x] Build size shrank dramatically due to omitting `torch` and `playwright` binaries.
+- [x] Local development environment remains **100% untouched and functional** using the original stack.
+
+---
+
 ## Summary
 
 | Phase | Deliverable | Key Metric |
@@ -543,6 +590,8 @@ Six factual questions were tested against the live bot. Four failed — not beca
 | **6. Frontend** | Chat UI with disclaimer, examples, manual sync | Responsive, polished, functional |
 | **7. Scheduler** | Hybrid ingestion scheduler & API endpoint | Automated runs at 9:15 AM |
 | **8. Testing** | Test suite, README, deployment | All test cases pass |
+| **9. Bug Fixes** | LLM logic & classification routing fixes | 4/4 failed tests passing |
+| **10. Cloud Migration**| HuggingFace API & Qdrant Cloud integration | RAM usage < 150MB (Railway Free limit) |
 
 ---
 

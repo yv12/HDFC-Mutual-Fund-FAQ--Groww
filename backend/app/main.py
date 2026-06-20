@@ -8,6 +8,8 @@ Run with:
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+import os
+import sys
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,11 +19,10 @@ from app.config import settings
 from app.api.routes import router as api_router
 from app.ingestion.scheduler import start_scheduler, stop_scheduler
 
-import sys
+# Windows-specific event loop policy (not needed on Railway/Linux)
 import asyncio
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
 
 
 # ── Lifespan (startup / shutdown) ────────────────────────────────
@@ -32,8 +33,9 @@ async def lifespan(app: FastAPI):
     print("=" * 60)
     print("  Mutual Fund FAQ Assistant — Starting Up")
     print(f"  LLM Provider     : xAI Grok ({settings.llm_model})")
-    print(f"  Embedding Model  : {settings.embedding_model} ({settings.embedding_dimensions}d, {settings.embedding_device})")
-    print(f"  ChromaDB Path    : {settings.chroma_persist_dir}")
+    print(f"  Embedding        : {settings.embedding_model} (provider={settings.embedding_provider})")
+    print(f"  Vector Store     : {settings.vector_db_provider}")
+    print(f"  Scheduler        : {'enabled' if settings.enable_scheduler else 'disabled'}")
     print(f"  CORS Origins     : {settings.cors_origin_list}")
     print(f"  Rate Limit       : {settings.rate_limit_per_minute} req/min")
     print("=" * 60)
@@ -89,8 +91,9 @@ async def health_check():
             "llm_provider": "xAI Grok",
             "llm_model": settings.llm_model,
             "embedding_model": settings.embedding_model,
+            "embedding_provider": settings.embedding_provider,
+            "vector_db_provider": settings.vector_db_provider,
             "embedding_dimensions": settings.embedding_dimensions,
-            "chroma_collection": settings.chroma_collection_name,
         },
     }
 

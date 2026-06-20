@@ -1,8 +1,11 @@
 # Architecture — Mutual Fund FAQ Assistant
 
-> **Last Updated: 11-Jun-2026** — Post-implementation bug-fix update.
-> Key changes were made to the Query Classifier, Retriever, Similarity Threshold, and LLM Prompt.
-> See [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for the full change log with before/after explanations.
+> **Last Updated: 20-Jun-2026** — Railway Free Plan Migration.
+> Migrated to a dual-mode architecture (Local vs Cloud API) to fit within Railway's 512MB RAM and 500MB storage limits.
+> See section 1b for details on the switch to HuggingFace Inference API and Qdrant Cloud.
+> 
+> **Previous Update: 11-Jun-2026** — Post-implementation bug-fix update.
+> See [Fix.txt](file:///d:/RAG%20Chatbot/Docs/Fix.txt) for the 11-Jun-2026 change log.
 
 ## 1. System Overview
 
@@ -57,6 +60,24 @@ Six test questions were run against the deployed bot. Four of them failed — no
 
 ---
 
+## 1b. Railway Free Plan Architecture Migration (20-Jun-2026)
+
+> [!NOTE]
+> **Why we made this change:**
+> The original architecture relied on local heavyweights: `sentence-transformers` for embeddings (~1.3 GB RAM, ~1.5 GB Ephemeral Disk) and `ChromaDB` for the vector store (~543 MB Persistent Disk). 
+> When attempting to deploy to the **Railway Free Plan**, we hit hard ceilings: Max 512 MB RAM, Max 512 MB Persistent Volume, and Max 1 GB Ephemeral Disk. Furthermore, Railway prohibits background cron jobs (`APScheduler`), and running Playwright (Chromium) requires too much RAM and disk.
+
+To solve this without paying for servers, the architecture was upgraded to a **Dual-Mode System**:
+
+| Component | Local Mode (Development) | Railway Mode (Production) | Reason for Change |
+|---|---|---|---|
+| **Embeddings** | `sentence-transformers` (Local) | **HuggingFace Inference API** | Eliminates 1.3 GB RAM and disk usage. Both use `BAAI/bge-large-en-v1.5` so retrieval quality is identical. 100% Free. |
+| **Vector Store** | `ChromaDB` (Local Disk) | **Qdrant Cloud** | Eliminates 543 MB persistent disk usage. Qdrant provides a 1GB RAM / 4GB disk cluster 100% Free. |
+| **Scraping** | Runs via Playwright | **Disabled on Railway** | Railway's 512MB RAM cannot support headless Chrome. Data ingestion runs locally; Railway only serves the API. |
+| **Scheduler** | `APScheduler` daily cron | **Disabled on Railway** | Railway Free Plan prohibits background cron jobs. Updates must be pushed manually. |
+
+The application dynamically switches modes using `.env` variables (`EMBEDDING_PROVIDER` and `VECTOR_DB_PROVIDER`).
+
 ## 2. Component Architecture
 
 ### 2.1 Offline Pipeline — Corpus Ingestion
@@ -79,8 +100,8 @@ flowchart LR
 | **Web Scraper** | Fetch raw HTML from the 5 pre-approved URLs | Handles dynamic content if Groww uses client-side rendering (headless browser or API-based) |
 | **Content Extractor** | Strip HTML, extract structured data (expense ratio, exit load, fund manager, AUM, etc.) | Preserves source URL as metadata on every extracted block |
 | **Document Chunker** | Split cleaned content into retrieval-friendly chunks | Chunk size: ~300–500 tokens with overlap; each chunk retains its source URL |
-| **Embedding Model** | Convert text chunks into vector embeddings | `BAAI/bge-large-en-v1.5` via sentence-transformers (local, open-source, 1024-dim) |
-| **Vector Store** | Store and index embeddings for fast similarity search | Options: ChromaDB (lightweight), Pinecone, FAISS, or Weaviate |
+| **Embedding Model** | Convert text chunks into vector embeddings | Dual-mode: Local `sentence-transformers` OR `HuggingFace Inference API`. Both use `BAAI/bge-large-en-v1.5` (1024-dim). |
+| **Vector Store** | Store and index embeddings for fast similarity search | Dual-mode: Local `ChromaDB` OR `Qdrant Cloud` free tier. |
 
 #### Chunk Metadata Schema
 
@@ -234,8 +255,8 @@ flowchart TB
 | **Frontend** | HTML/CSS/JS | Minimal chat UI |
 | **Backend / API** | Python (FastAPI) | Handles query processing, RAG orchestration |
 | **Web Scraping** | BeautifulSoup + Playwright | Playwright for JS-heavy Groww pages |
-| **Embedding Model** | `BAAI/bge-large-en-v1.5` (sentence-transformers) | Local, open-source, zero API cost |
-| **Vector Store** | ChromaDB | Lightweight, embedded, persistent |
+| **Embedding Model** | `BAAI/bge-large-en-v1.5` | **Dual-mode**: `sentence-transformers` (local) or `HuggingFace Inference API` (Railway). Zero cost. |
+| **Vector Store** | ChromaDB / Qdrant Cloud | **Dual-mode**: `ChromaDB` for local persistence, `Qdrant Cloud` for remote zero-cost hosting. |
 | **LLM** | Local open-source model (Llama 3 / Qwen 2.5) via Ollama | Runs locally, zero API cost; system prompt enforces constraints |
 | **Orchestration** | LangChain | Simplifies RAG pipeline wiring |
 
@@ -265,28 +286,46 @@ flowchart LR
 
 ## 7. Deployment View
 
+> [!NOTE] 
+> **Legacy Deployment View (Pre-Railway Migration)**
+> > ```mermaid
+> > flowchart TB
+> >     subgraph Server["Application Server (Heavy)"]
+> >         API["API Server (FastAPI)"]
+> >         RAG["RAG Pipeline"]
+> >         VS[("Local Vector Store\n(ChromaDB)")]
+> >     end
+> > ```
+> > *The above design was abandoned for production because it required >1.5GB RAM and >500MB disk, exceeding Railway's free limits.*
+
+### Current Dual-Mode Deployment View (Railway + Cloud Services)
+
+To fit within the 512 MB RAM limit, the heavy components were offloaded to free cloud APIs.
+
 ```mermaid
 flowchart TB
     subgraph Client
         Browser["User Browser"]
     end
 
-    subgraph Server["Application Server"]
+    subgraph Railway["Railway Free Tier (Max 512MB RAM)"]
         FE["Frontend\n(Static Files)"]
         API["API Server\n(FastAPI)"]
         RAG["RAG Pipeline"]
+        API <--> RAG
     end
 
-    subgraph Storage
-        VS[("Vector Store\n(ChromaDB)")]
-        CFG["Config & Prompts"]
+    subgraph FreeCloudServices["Free External APIs"]
+        HF["HuggingFace Inference API\n(Embeddings)"]
+        QD[("Qdrant Cloud\n(Vector Store)")]
+        GROQ["Groq API\n(LLM)"]
     end
 
     Browser <-->|HTTP| FE
     Browser <-->|REST API| API
-    API <--> RAG
-    RAG <--> VS
-    RAG <--> CFG
+    RAG <-->|Embedding Request| HF
+    RAG <-->|Similarity Search| QD
+    RAG <-->|Generate Answer| GROQ
 ```
 
 ---

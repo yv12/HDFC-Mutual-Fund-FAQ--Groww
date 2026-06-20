@@ -5,6 +5,9 @@ uvicorn[standard]==0.34.3
 # ─── Vector Store ───
 chromadb==1.0.7
 
+# ─── Vector Store (Qdrant Cloud — optional, for Railway mode) ───
+qdrant-client>=1.9.0
+
 # ─── LLM (Grok via OpenAI-compatible SDK) ───
 openai==1.86.0
 langchain==0.3.25
@@ -12,6 +15,9 @@ langchain-community==0.3.24
 
 # ─── Embeddings (local, open-source) ───
 sentence-transformers>=3.0.0
+
+# ─── Embeddings (HuggingFace API — optional, for Railway mode) ───
+huggingface-hub>=0.23.0
 
 # ─── Web Scraping ───
 beautifulsoup4==4.13.4
@@ -30,3 +36,4 @@ pytz==2024.1
 pytest==8.4.0
 pytest-asyncio==1.0.0
 httpx==0.28.1
+
