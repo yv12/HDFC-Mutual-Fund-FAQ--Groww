@@ -158,6 +158,17 @@ def _ensure_qdrant_collection() -> None:
             ),
         )
         logger.info("✓ Qdrant collection created.")
+
+        logger.info("Creating Qdrant payload index for 'scheme_name'...")
+        try:
+            client.create_payload_index(
+                collection_name=collection_name,
+                field_name="scheme_name",
+                field_schema="keyword",
+            )
+            logger.info("✓ Qdrant payload index created.")
+        except Exception as e:
+            logger.warning("Could not create payload index: %s", e)
     else:
         logger.info("Qdrant collection '%s' already exists.", collection_name)
 
