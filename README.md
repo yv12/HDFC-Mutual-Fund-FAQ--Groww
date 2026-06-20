@@ -22,15 +22,29 @@ This assistant retrieves information exclusively from **5 pre-approved Groww URL
 
 ---
 
-## Architecture (RAG Approach)
+## Architecture (Dual-Mode RAG Approach)
 
-```
-User Query → PII Scanner → Query Classifier → Retriever (ChromaDB) → LLM Generator → Citation Validator → Response
+> **Updated 20-Jun-2026:** Migrated to a **Dual-Mode Architecture** to support free cloud deployment.
+
+### Before vs After (Railway Free Plan Migration)
+
+When initially built for local development, the application used heavy local Machine Learning libraries. To deploy to Railway's Free Plan (Max 512 MB RAM, 512 MB disk), the heavy components were offloaded to free cloud APIs.
+
+| Component | Before (Local Mode) | After (Cloud / Production Mode) | Why? |
+|---|---|---|---|
+| **Embeddings** | Local `sentence-transformers` (`BAAI/bge-large-en-v1.5`) | **HuggingFace Inference API** | Saved ~1.3 GB RAM. Both modes produce identical vectors. |
+| **Vector Database**| Local `ChromaDB` (on disk) | **Qdrant Cloud** (Free Tier) | Saved ~543 MB persistent disk space. |
+| **Scheduler** | `APScheduler` (Background Cron) | **Disabled** on Railway | Railway prohibits background cron jobs. |
+| **Scraper** | Runs via Playwright in the app | **Runs Locally** before deploy | Headless Chrome exceeds Railway's 512 MB RAM limit. |
+
+### Pipeline Flow
+```text
+User Query → PII Scanner → Query Classifier → Retriever (Qdrant/Chroma) → LLM Generator → Citation Validator → Response
 ```
 
-- **Offline/Scheduled Pipeline**: APScheduler triggers (Daily 9:15 AM or manual) Scrape Groww URLs → Extract → Chunk → Embed (BAAI/bge-large-en-v1.5) → Store in ChromaDB
-- **Online Pipeline**: Classify query → Retrieve top-k chunks → Generate facts-only answer (xAI Grok) → Validate citations
-- **Zero-hallucination link policy**: All URLs in responses come verbatim from chunk metadata — the LLM never generates URLs
+- **Offline/Scheduled Pipeline**: Scrape Groww URLs → Extract → Chunk → Embed (HF API or Local) → Store in Vector DB.
+- **Online Pipeline**: Classify query → Retrieve top-k chunks → Generate facts-only answer (Groq LLM) → Validate citations.
+- **Zero-hallucination link policy**: All URLs in responses come verbatim from chunk metadata — the LLM never generates URLs.
 - **Frontend UI**: A modern, responsive chat interface served directly by FastAPI.
 
 ---
@@ -67,12 +81,15 @@ copy .env.example .env
 
 | Variable | Description | Default |
 |---|---|---|
-| `OPENAI_API_KEY` | Your xAI API key (using OpenAI compatible SDK) | *(required)* |
-| `LLM_MODEL` | LLM model name (e.g. grok-2-latest) | `grok-2-latest` |
-| `EMBEDDING_MODEL` | HuggingFace embedding model name | `BAAI/bge-large-en-v1.5` |
-| `CHROMA_PERSIST_DIR` | ChromaDB storage path | `./chroma_data` |
-| `RETRIEVAL_TOP_K` | Number of chunks to retrieve | `4` |
-| `API_PORT` | API server port | `8000` |
+| `EMBEDDING_PROVIDER` | `local` (sentence-transformers) or `api` (HuggingFace API) | `local` |
+| `VECTOR_DB_PROVIDER` | `chroma` (Local disk) or `qdrant` (Qdrant Cloud) | `chroma` |
+| `HF_API_TOKEN` | HuggingFace token (Required if `EMBEDDING_PROVIDER=api`) | - |
+| `QDRANT_URL` | Qdrant cluster endpoint (Required if `VECTOR_DB_PROVIDER=qdrant`) | - |
+| `QDRANT_API_KEY` | Qdrant API key (Required if `VECTOR_DB_PROVIDER=qdrant`) | - |
+| `XAI_API_KEY` | Your Groq API key (using OpenAI compatible SDK) | *(required)* |
+| `XAI_BASE_URL` | The Groq endpoint | `https://api.groq.com/openai/v1` |
+| `LLM_MODEL` | LLM model name | `llama-3.1-8b-instant` |
+| `ENABLE_SCHEDULER` | Set to `false` in production if background cron jobs are disabled | `true` |
 
 ### Running the Ingestion Script
 
