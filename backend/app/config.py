@@ -63,7 +63,7 @@ class Settings(BaseSettings):
     # ── API Server ────────────────────────────────────────────────
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: str = "https://hdfc-mutual-fund-faq-groww-72t3uj3v3.vercel.app,http://localhost:3000,http://127.0.0.1:5500"
+    cors_origins: str = "https://hdfc-mutual-fund-faq-groww.vercel.app,https://hdfc-mutual-fund-faq-groww-72t3uj3v3.vercel.app,http://localhost:3000,http://127.0.0.1:5500"
 
     # ── Rate Limiting ─────────────────────────────────────────────
     rate_limit_per_minute: int = 20
