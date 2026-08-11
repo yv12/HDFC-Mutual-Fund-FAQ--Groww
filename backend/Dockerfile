@@ -30,6 +30,10 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy backend application code (only what's needed for serving)
 COPY backend/app/ ./app/
 
+# Copy pre-scraped data and ingestion scripts (needed for Qdrant re-indexing)
+COPY backend/data/ ./data/
+COPY backend/scripts/ ./scripts/
+
 # Copy frontend files for static serving
 COPY frontend/ ./frontend/
 

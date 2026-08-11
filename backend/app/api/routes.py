@@ -140,3 +140,62 @@ async def sync_status():
     return {"is_syncing": scheduler_module.IS_SYNCING}
 
 
+@router.post("/admin/reindex", status_code=202, tags=["Admin"])
+async def reindex_from_data(background_tasks: BackgroundTasks):
+    """
+    Re-index the vector store from the pre-scraped chunks.json file.
+    Does NOT require Playwright or scraping — works on Railway.
+    """
+    logger.info("Reindex from chunks.json triggered.")
+    background_tasks.add_task(_reindex_task)
+    return {"message": "Reindex from chunks.json started in the background."}
+
+
+async def _reindex_task():
+    """Background task to load chunks.json and index into the vector store."""
+    import json
+    from pathlib import Path
+    from app.ingestion.chunker import Chunk
+    from app.ingestion.vector_store import add_chunks, reset_store
+
+    scheduler_module.IS_SYNCING = True
+    try:
+        # Try multiple possible locations for chunks.json
+        possible_paths = [
+            Path(__file__).resolve().parent.parent.parent / "data" / "chunks.json",  # /app/data/chunks.json (Docker)
+            Path(__file__).resolve().parent.parent / "data" / "chunks.json",          # backend/data/ (local)
+        ]
+
+        chunks_file = None
+        for p in possible_paths:
+            if p.exists():
+                chunks_file = p
+                break
+
+        if not chunks_file:
+            logger.error("chunks.json not found in any expected location: %s", [str(p) for p in possible_paths])
+            return
+
+        logger.info("Loading chunks from %s", chunks_file)
+        raw = json.loads(chunks_file.read_text(encoding="utf-8"))
+
+        chunks = []
+        for item in raw:
+            chunks.append(Chunk(
+                chunk_id=item["chunk_id"],
+                text=item["text"],
+                source_url=item["source_url"],
+                scheme_name=item["scheme_name"],
+                section=item["section"],
+                scraped_at=item.get("scraped_at", ""),
+            ))
+
+        logger.info("Loaded %d chunks. Resetting vector store and re-indexing...", len(chunks))
+        reset_store()
+        add_chunks(chunks)
+        logger.info("✓ Reindex complete. %d chunks indexed.", len(chunks))
+
+    except Exception as e:
+        logger.error("Reindex failed: %s", e, exc_info=True)
+    finally:
+        scheduler_module.IS_SYNCING = False
