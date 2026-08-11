@@ -2,130 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HDFC Mutual Fund FAQ Assistant</title>
-    <meta name="description" content="Facts-only AI assistant for HDFC Mutual Fund scheme information. Get instant answers about expense ratios, NAVs, AUM, and more.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lumina Finance</title>
+    <meta name="description" content="Facts-only AI assistant for HDFC Mutual Fund scheme information.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="brand">
-                <div class="logo">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        <path d="M2 17l10 5 10-5"></path>
-                        <path d="M2 12l10 5 10-5"></path>
+    <header class="app-header">
+        <div class="header-left">
+            <button class="hamburger-btn" id="hamburger-btn" aria-label="Toggle sidebar" aria-expanded="false" aria-controls="right-rail">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="3" y1="12" x2="21" y2="12"></line>
+                    <line x1="3" y1="6" x2="21" y2="6"></line>
+                    <line x1="3" y1="18" x2="21" y2="18"></line>
+                </svg>
+            </button>
+            <h1 class="brand-title">Lumina Finance</h1>
+        </div>
+        <div class="header-right">
+            <div class="status-pill" id="status-pill" aria-label="Status: Idle">
+                <span class="status-icon" id="status-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
                     </svg>
-                </div>
-                <div class="brand-text">
-                    <h1>Mutual Fund FAQ</h1>
-                    <span class="brand-tagline">Verified Facts Only</span>
+                </span>
+                <span class="status-label" id="status-label">Synced Today</span>
+            </div>
+            <div class="info-tooltip-container">
+                <button class="info-btn" aria-label="Disclaimer Information">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </button>
+                <div class="tooltip-content" role="tooltip">
+                    Facts only, no investment advice. Answers come from published scheme pages.
                 </div>
             </div>
+        </div>
+        <div class="progress-bar-container" id="progress-bar-container">
+            <div class="progress-bar-fill"></div>
+        </div>
+    </header>
 
-
-            <!-- Example Queries -->
-            <div class="example-questions">
-                <h3>Example Queries</h3>
-                <div class="card" onclick="setQuery('What is the expense ratio of HDFC Mid Cap Fund?')">
-                    "What is the expense ratio of HDFC Mid-Cap Opportunities..."
-                </div>
-                <div class="card" onclick="setQuery('Who is the fund manager of HDFC Small Cap Fund?')">
-                    "Who is the fund manager for HDFC Top 100 Fund?"
-                </div>
-                <div class="card" onclick="setQuery('What is the exit load for HDFC Large Cap Fund?')">
-                    "What is the exit load for HDFC Flexi Cap Fund?"
-                </div>
+    <div class="app-body">
+        <main class="chat-column">
+            <div class="chat-thread" id="chat-thread" role="log" aria-live="polite">
+                <!-- Empty state and messages will be injected here by JS -->
             </div>
-
-
-
-        </aside>
-
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <!-- Disclaimer Banner -->
-            <div class="disclaimer-banner">
-                <span class="disclaimer-icon">⚠️</span>
-                Facts-only. No investment advice. I am an AI assistant and I only provide factual information from Groww.
-            </div>
-
-            <!-- Chat Area -->
-            <div class="chat-area" id="chat-area">
-
-
-                <!-- Chat Header -->
-                <header class="chat-header">
-                    <div class="chat-header-left">
-                        <div class="assistant-avatar">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                                <path d="M2 17l10 5 10-5"></path>
-                                <path d="M2 12l10 5 10-5"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <h2>HDFC Scheme Assistant</h2>
-                            <span class="status-indicator">
-                                <span class="status-dot"></span> Online
-                            </span>
-                        </div>
-                    </div>
-                </header>
-
-                <!-- Chat Messages -->
-                <div class="chat-window" id="chat-window">
-                    <!-- Welcome Message -->
-                    <div class="message assistant">
-                        <div class="message-avatar">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                                <path d="M2 17l10 5 10-5"></path>
-                                <path d="M2 12l10 5 10-5"></path>
-                            </svg>
-                        </div>
-                        <div class="bubble">
-                            Welcome! 👋 I can answer factual questions about HDFC Mutual Fund schemes like expense ratios, NAVs, and AUM. How can I help you today?
-                        </div>
-                    </div>
+            
+            <div class="input-area">
+                <div class="queued-note hidden" id="queued-note">
+                    Queued. This sends automatically when the sync finishes.
                 </div>
-
-                <!-- Input Area -->
-                <div class="input-area">
-                    <form id="chat-form">
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                            </svg>
-                            <input type="text" id="query-input" placeholder="Ask a question about HDFC mutual funds..." autocomplete="off" required>
-                            <button type="submit" id="send-btn" aria-label="Send message">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                                </svg>
-                            </button>
-                        </div>
-                    </form>
-                    <p class="input-disclaimer">AI generated responses. Please verify important financial data independently.</p>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="footer-bar">
-                <div class="footer-left">
-                    <span class="footer-icon">⚠️</span>
-                    Facts-only. No investment advice. I am an AI assistant and I only provide factual information from Groww.
-                </div>
-                <div class="footer-links">
-                    <a href="#">Terms</a>
-                    <a href="#">Privacy</a>
-                    <a href="#">Disclaimer</a>
-                </div>
+                <form id="chat-form" class="chat-form">
+                    <input type="text" id="query-input" class="query-input" placeholder="Ask a factual question..." autocomplete="off">
+                    <button type="submit" id="send-btn" class="send-btn" aria-label="Send message">Send</button>
+                </form>
             </div>
         </main>
+
+        <!-- Right rail starts out hidden on mobile -->
+        <aside class="right-rail" id="right-rail">
+            <div class="rail-header">
+                <h2>Your chats</h2>
+                <button id="new-chat-btn" class="icon-btn" aria-label="New chat">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="history-list" id="history-list">
+                <!-- History grouped by date injected by JS -->
+            </div>
+            
+            <div class="popular-section">
+                <div class="rail-header">
+                    <h2>Popular this week</h2>
+                </div>
+                <div class="popular-list" id="popular-list">
+                    <!-- 4 items injected by JS -->
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Mobile overlay backdrop for when rail is open -->
+        <div class="rail-backdrop" id="rail-backdrop" aria-hidden="true"></div>
     </div>
 
     <script src="index.js"></script>

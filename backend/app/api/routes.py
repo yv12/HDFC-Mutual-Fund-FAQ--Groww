@@ -15,6 +15,8 @@ from app.pipeline.refusal_handler import handle_refusal
 from app.security.pii_scanner import scan_pii
 from app.security.sanitizer import sanitize_input
 from app.security.rate_limiter import rate_limit_dependency
+from app.api.history import get_session_history, add_message
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +63,11 @@ async def chat(request: ChatRequest):
             query_type="out_of_scope",
         )
 
+    # 1.5 Fetch session history
+    session_id = request.session_id or str(uuid.uuid4())
+    history = get_session_history(session_id)
+    logger.info("Fetched %d turns of history for session %s", len(history), session_id)
+
     # 2. Scan for PII (PAN, Aadhaar, Email, Phone, OTP, Bank Account)
     if scan_pii(sanitized_query):
         logger.warning("Query blocked by PII scanner.")
@@ -96,7 +103,7 @@ async def chat(request: ChatRequest):
         )
 
     # 6. Generate response using LLM (using the rewritten query so the context matches)
-    raw_answer = generate_response(rewritten_query, chunks)
+    raw_answer = generate_response(rewritten_query, chunks, history)
 
     # Handle case where generator returns fallback answer
     if raw_answer == "I don't have this information in my current sources.":
@@ -111,7 +118,11 @@ async def chat(request: ChatRequest):
     # 6. Validate citations & post-process
     cleaned_answer, citation, footer = validate_citations(raw_answer, chunks)
 
-    logger.info("Returning validated factual response.")
+    # 7. Save interaction to secondary memory (SQLite)
+    add_message(session_id, "user", raw_query)
+    add_message(session_id, "assistant", cleaned_answer)
+
+    logger.info("Returning validated factual response for session %s.", session_id)
     return ChatResponse(
         answer=cleaned_answer,
         citation=citation,

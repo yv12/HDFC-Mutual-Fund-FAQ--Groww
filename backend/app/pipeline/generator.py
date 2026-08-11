@@ -16,7 +16,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def generate_response(query: str, chunks: list[dict[str, Any]]) -> str:
+def generate_response(query: str, chunks: list[dict[str, Any]], history: list[dict[str, Any]] = None) -> str:
     """
     Generate a facts-only, cited answer from retrieved context.
     
@@ -55,6 +55,15 @@ def generate_response(query: str, chunks: list[dict[str, Any]]) -> str:
     )
 
     user_content = f"Context:\n{context_str}\n\nQuery: {query}"
+    
+    messages = [{"role": "system", "content": system_prompt}]
+    
+    # Add conversation history to messages
+    if history:
+        for msg in history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+            
+    messages.append({"role": "user", "content": user_content})
 
     # 3. Initialize OpenAI client pointing to Ollama's API endpoint
     api_key = settings.xai_api_key or "ollama"  # OpenAI client requires a non-empty string API key
@@ -66,16 +75,14 @@ def generate_response(query: str, chunks: list[dict[str, Any]]) -> str:
 
     try:
         logger.info(
-            "Requesting LLM generation using model '%s' via endpoint '%s' ...",
+            "Requesting LLM generation using model '%s' via endpoint '%s' with %d history turns...",
             settings.llm_model,
             settings.xai_base_url,
+            len(history) if history else 0
         )
         completion = client.chat.completions.create(
             model=settings.llm_model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
+            messages=messages,
             temperature=0.0,  # Max determinism to avoid hallucination
             max_tokens=300,
         )

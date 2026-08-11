@@ -15,6 +15,10 @@ class ChatRequest(BaseModel):
         description="The user's question about HDFC mutual fund schemes.",
         examples=["What is the expense ratio of HDFC Mid Cap Fund?"],
     )
+    session_id: str | None = Field(
+        default=None,
+        description="Unique identifier for the chat session to retrieve conversation history.",
+    )
 
 
 class CitationInfo(BaseModel):
