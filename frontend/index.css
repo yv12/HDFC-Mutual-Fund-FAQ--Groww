@@ -203,6 +203,7 @@ html, body {
     display: flex;
     flex-direction: column;
     min-width: 0; /* Prevents flex blowout */
+    min-height: 0; /* Prevents vertical blowout */
     border-right: 1px solid var(--border);
     position: relative;
 }
