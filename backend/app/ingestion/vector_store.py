@@ -133,7 +133,7 @@ def _get_qdrant_client():
                 "QDRANT_URL is required when VECTOR_DB_PROVIDER='qdrant'. "
                 "Create a free cluster at https://cloud.qdrant.io"
             )
-        _qdrant_client = QdrantClient(url=url, api_key=api_key or None)
+        _qdrant_client = QdrantClient(url=url, api_key=api_key or None, timeout=60)
         logger.info("Qdrant Cloud client connected to %s", url)
     return _qdrant_client
 
@@ -204,9 +204,10 @@ def _add_chunks_qdrant(chunks: list[Chunk]) -> None:
 
     logger.info("Upserting %d points to Qdrant collection '%s' ...", len(points), collection_name)
     # Upsert in batches of 100
-    batch_size = 100
+    batch_size = 20
     for start in range(0, len(points), batch_size):
         batch = points[start:start + batch_size]
+        logger.info("Upserting batch %d-%d of %d points...", start + 1, start + len(batch), len(points))
         client.upsert(collection_name=collection_name, points=batch)
 
     logger.info("✓ Qdrant indexing complete.")

@@ -38,7 +38,7 @@ The following was done before deployment and does NOT need to be repeated:
 | **Railway** | Host the FastAPI app | 512 MB RAM, 512 MB disk, 1 vCPU | [railway.app](https://railway.app) |
 | **Qdrant Cloud** | Vector database (35 chunks) | 1 GB RAM, 4 GB disk, 1 cluster | [cloud.qdrant.io](https://cloud.qdrant.io) |
 | **HuggingFace** | Generate query embeddings at runtime | Free Serverless Inference | [huggingface.co](https://huggingface.co) |
-| **Groq** | LLM (llama-3.1-8b-instant) | ~14,400 tokens/min free | [console.groq.com](https://console.groq.com) |
+| **Groq** | LLM (openai/gpt-oss-20b) | ~14,400 tokens/min free | [console.groq.com](https://console.groq.com) |
 | **GitHub** | Source code hosting (needed by Railway) | Unlimited public repos | [github.com](https://github.com) |
 
 ---
@@ -168,9 +168,9 @@ In Railway, click on your deployed service → **"Variables"** tab → **"Add Va
 | `HF_API_TOKEN` | `hf_your_token_here` | Authenticates with HuggingFace for embedding API calls |
 | `QDRANT_URL` | `https://2522b98e-1be7-4ced-be02-853b0be095b4.sa-east-1-0.aws.cloud.qdrant.io:6333` | The address of your Qdrant Cloud cluster |
 | `QDRANT_API_KEY` | `your_qdrant_api_key_here` | Authenticates with Qdrant Cloud |
-| `XAI_API_KEY` | `your_groq_api_key_here` | Groq API key for LLM (llama-3.1-8b-instant) |
+| `XAI_API_KEY` | `your_groq_api_key_here` | Groq API key for LLM (openai/gpt-oss-20b) |
 | `XAI_BASE_URL` | `https://api.groq.com/openai/v1` | Points the OpenAI SDK to Groq's endpoint |
-| `LLM_MODEL` | `llama-3.1-8b-instant` | Specifies which Groq model to use |
+| `LLM_MODEL` | `openai/gpt-oss-20b` | Specifies which Groq model to use |
 | `ENABLE_SCHEDULER` | `false` | Disables APScheduler — Railway does not allow background cron jobs |
 | `CORS_ORIGINS` | `*` | Allows all browser origins to access the API (needed since Railway gives a random domain) |
 
@@ -238,7 +238,7 @@ https://your-app-name.up.railway.app/health
   "config": {
     "embedding_provider": "api",
     "vector_db_provider": "qdrant",
-    "llm_model": "llama-3.1-8b-instant"
+    "llm_model": "openai/gpt-oss-20b"
   }
 }
 ```

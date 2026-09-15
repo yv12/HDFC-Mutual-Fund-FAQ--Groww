@@ -52,9 +52,9 @@ def rewrite_query(query: str) -> str:
             temperature=0.0,
             max_tokens=100,
         )
-        rewritten = completion.choices[0].message.content.strip()
+        rewritten = (completion.choices[0].message.content or "").strip()
         logger.info("Original Query: '%s' | Rewritten: '%s'", query, rewritten)
-        return rewritten
+        return rewritten if rewritten else query
     except Exception as exc:
         logger.error("Query rewriting failed: %s. Falling back to original query.", exc)
         return query

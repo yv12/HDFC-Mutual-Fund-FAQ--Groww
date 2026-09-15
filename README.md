@@ -88,7 +88,7 @@ copy .env.example .env
 | `QDRANT_API_KEY` | Qdrant API key (Required if `VECTOR_DB_PROVIDER=qdrant`) | - |
 | `XAI_API_KEY` | Your Groq API key (using OpenAI compatible SDK) | *(required)* |
 | `XAI_BASE_URL` | The Groq endpoint | `https://api.groq.com/openai/v1` |
-| `LLM_MODEL` | LLM model name | `llama-3.1-8b-instant` |
+| `LLM_MODEL` | LLM model name | `openai/gpt-oss-20b` |
 | `ENABLE_SCHEDULER` | Set to `false` in production if background cron jobs are disabled | `true` |
 
 ### Running the Ingestion Script

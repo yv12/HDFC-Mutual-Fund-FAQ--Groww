@@ -33,12 +33,8 @@ let typingIndicatorElement = null;
 
 function init() {
     loadSessions();
-    if (sessions.length > 0) {
-        // Load the most recent session
-        loadSession(sessions[0].id);
-    } else {
-        startNewSession();
-    }
+    // Always start fresh — old chats accessible via sidebar history
+    startNewSession();
     
     renderHistoryRail();
     renderPopular();
@@ -427,7 +423,18 @@ async function sendMessageToAPI(query) {
 
 function renderHistoryRail() {
     historyList.innerHTML = '';
-    if (sessions.length === 0) return;
+
+    if (sessions.length === 0) {
+        historyList.innerHTML = `
+            <div class="history-empty">
+                <svg class="history-empty-icon" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>No chat history yet</span>
+            </div>
+        `;
+        return;
+    }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -457,21 +464,40 @@ function renderHistoryRail() {
             row.tabIndex = 0;
             
             const timeStr = new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            const dateStr = new Date(item.createdAt).toLocaleDateString();
+            const dateStr = new Date(item.createdAt).toLocaleDateString([], {month: 'short', day: 'numeric'});
             const displayTime = title === 'Today' ? timeStr : dateStr;
             
             let chipsHtml = item.schemes.map(s => `<span class="scheme-chip">${escapeHtml(s)}</span>`).join('');
             
             row.innerHTML = `
-                <div class="history-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title) || 'New Chat'}</div>
-                <div class="history-meta">
-                    <span>${item.messageCount} msgs &bull; ${displayTime}</span>
-                    ${chipsHtml}
+                <div class="history-item-content">
+                    <div class="history-title" title="${escapeHtml(item.title)}">${escapeHtml(item.title) || 'New Chat'}</div>
+                    <div class="history-meta">
+                        <div class="history-meta-info">
+                            <span class="history-msg-count">${item.messageCount}</span>
+                            <span>${displayTime}</span>
+                        </div>
+                        ${chipsHtml}
+                    </div>
                 </div>
+                <button class="history-delete-btn" aria-label="Delete chat" title="Delete chat">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
             `;
             
-            row.onclick = () => loadSession(item.id);
+            // Click content area to load session
+            row.querySelector('.history-item-content').onclick = () => loadSession(item.id);
             row.onkeydown = (e) => { if (e.key === 'Enter') loadSession(item.id); };
+            
+            // Click delete button to remove session
+            row.querySelector('.history-delete-btn').onclick = (e) => {
+                e.stopPropagation();
+                deleteSession(item.id);
+            };
+            
             historyList.appendChild(row);
         });
     };
@@ -479,6 +505,16 @@ function renderHistoryRail() {
     buildGroup('Today', groups.today);
     buildGroup('Last 7 days', groups.week);
     buildGroup('Older', groups.older);
+}
+
+function deleteSession(id) {
+    sessions = sessions.filter(s => s.id !== id);
+    saveSessions();
+    
+    // If we deleted the current session, start a new one
+    if (id === currentSessionId) {
+        startNewSession();
+    }
 }
 
 function loadSession(id) {
@@ -507,14 +543,13 @@ function loadSession(id) {
     }
 }
 
-// Popular this week stub
+// Popular questions — curated for the available fund data
 function fetchPopularQuestions() {
-    // TODO: Connect this to a real backend endpoint later.
     return [
-        { q: "What is the AUM of HDFC Mid Cap?", count: 120 },
-        { q: "Exit load for Small Cap fund", count: 85 },
-        { q: "Who manages Flexi Cap?", count: 64 },
-        { q: "Minimum SIP for Top 100", count: 42 }
+        { q: "What is the AUM of HDFC Mid Cap?", icon: "M" },
+        { q: "Exit load for Small Cap fund", icon: "S" },
+        { q: "NAV of HDFC Defence Fund", icon: "D" },
+        { q: "Expense ratio of HDFC Mid Cap Fund", icon: "M" }
     ];
 }
 
@@ -526,10 +561,15 @@ function renderPopular() {
         const btn = document.createElement('button');
         btn.className = 'popular-item';
         btn.innerHTML = `
-            <span>${escapeHtml(item.q)}</span>
-            <span class="popular-count">${item.count}</span>
+            <span class="popular-item-icon">${item.icon}</span>
+            <span class="popular-item-text">${escapeHtml(item.q)}</span>
+            <svg class="popular-item-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
         `;
         btn.onclick = () => {
+            // Start a new chat for popular questions
+            startNewSession();
             queryInput.value = item.q;
             chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
             if (window.innerWidth <= 900) closeMobileRail();
