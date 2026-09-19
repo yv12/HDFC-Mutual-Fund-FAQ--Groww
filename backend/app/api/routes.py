@@ -11,7 +11,7 @@ from app.pipeline.retriever import retrieve_relevant_context
 from app.pipeline.generator import generate_response
 from app.pipeline.query_rewriter import rewrite_query
 from app.pipeline.citation_validator import validate_citations
-from app.pipeline.refusal_handler import handle_refusal
+from app.pipeline.refusal_handler import handle_refusal, handle_small_talk
 from app.security.pii_scanner import scan_pii
 from app.security.sanitizer import sanitize_input
 from app.security.rate_limiter import rate_limit_dependency
@@ -35,7 +35,8 @@ async def chat(request: ChatRequest):
 
     Flow:
       query → rate limit check → sanitize input → PII check → classify →
-      (retrieve → generate → validate citation) OR refusal → respond
+      small_talk (friendly response) OR advisory/out_of_scope (refusal) OR
+      factual (retrieve → rewrite → generate → validate citation) → respond
     """
     import app.ingestion.scheduler as scheduler
     if scheduler.IS_SYNCING:
@@ -78,17 +79,24 @@ async def chat(request: ChatRequest):
             query_type="pii_blocked",
         )
 
-    # 3. Classify the query (factual vs. advisory vs. out_of_scope)
+    # 3. Classify the query: small_talk → advisory → factual → out_of_scope
     q_type = classify_query(sanitized_query)
     logger.info("Query classification: %s", q_type)
 
+    # 3a. Small talk — friendly response, no retrieval, no citation
+    if q_type == "small_talk":
+        response = handle_small_talk(sanitized_query)
+        logger.info("Returning small-talk response")
+        return response
+
+    # 3b. Advisory or out-of-scope — refusal
     if q_type in ("advisory", "out_of_scope"):
         response = handle_refusal(q_type)
         logger.info("Returning refusal response for type '%s'", q_type)
         return response
 
-    # 4. Normalize query via LLM to resolve aliases
-    rewritten_query = rewrite_query(sanitized_query)
+    # 4. Normalize query via LLM to resolve aliases AND pronouns from history
+    rewritten_query = rewrite_query(sanitized_query, history)
 
     # 5. Retrieve relevant context (factual) using the normalized query
     chunks = retrieve_relevant_context(rewritten_query)
@@ -96,7 +104,7 @@ async def chat(request: ChatRequest):
     if not chunks:
         logger.info("No relevant chunks found above similarity threshold.")
         return ChatResponse(
-            answer="I don't have this information in my current sources.",
+            answer="I could not find that in my sources. Could you rephrase your question or specify which HDFC fund you're asking about?",
             citation=CitationInfo(),
             footer="HDFC Mutual Fund FAQ Assistant",
             query_type="factual",
@@ -105,20 +113,30 @@ async def chat(request: ChatRequest):
     # 6. Generate response using LLM (using the rewritten query so the context matches)
     raw_answer = generate_response(rewritten_query, chunks, history)
 
-    # Handle case where generator returns fallback answer
-    if raw_answer == "I don't have this information in my current sources.":
-        logger.info("Generator returned fallback/no info response.")
+    # Handle case where generator returns fallback answer or empty response
+    if not raw_answer or not raw_answer.strip() or raw_answer == "I don't have this information in my current sources.":
+        logger.info("Generator returned fallback/empty response.")
         return ChatResponse(
-            answer=raw_answer,
+            answer=raw_answer if raw_answer and raw_answer.strip() else "I could not find that in my sources.",
             citation=CitationInfo(),
             footer="HDFC Mutual Fund FAQ Assistant",
             query_type="factual",
         )
 
-    # 6. Validate citations & post-process
+    # 7. Validate citations & post-process
     cleaned_answer, citation, footer = validate_citations(raw_answer, chunks)
 
-    # 7. Save interaction to secondary memory (SQLite)
+    # 8. Build contextual follow-up chip
+    # Only show a follow-up chip when a specific fund was identified in the answer
+    follow_up = None
+    scheme_name = citation.scheme_name
+    if scheme_name and scheme_name not in ("AMFI India", "HDFC Mutual Fund"):
+        # Make the chip specific — use the actual fund name
+        # Strip "Direct Growth" suffix for cleaner display
+        display_name = scheme_name.replace(" Direct Growth", "").replace(" Direct Plan Growth", "")
+        follow_up = f"Tell me more about {display_name}"
+
+    # 9. Save interaction to secondary memory (SQLite)
     add_message(session_id, "user", raw_query)
     add_message(session_id, "assistant", cleaned_answer)
 
@@ -128,6 +146,7 @@ async def chat(request: ChatRequest):
         citation=citation,
         footer=footer,
         query_type="factual",
+        follow_up=follow_up,
     )
 
 

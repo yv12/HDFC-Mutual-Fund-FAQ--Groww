@@ -51,7 +51,12 @@ def generate_response(query: str, chunks: list[dict[str, Any]], history: list[di
         "'I don't have this information in my current sources.' "
         "However, if the answer can be reasonably understood from the context (for example, "
         "inferring that 30 days falls within a 1-year exit load window), you SHOULD answer.\n"
-        "6. Be direct, factual, and professional. Do NOT append any 'Source:', 'Citation:', or 'Last updated' footers to your response."
+        "6. Be direct, factual, and professional. Do NOT append any 'Source:', 'Citation:', or 'Last updated' footers to your response.\n"
+        "7. CRITICAL: Do NOT extrapolate, project, or calculate future values from past returns. "
+        "If answering requires a number that does NOT exist in the source document, say: "
+        "'I don't have this information in my current sources.' "
+        "Never say 'based on past returns, you would earn...' or similar projections. "
+        "Past returns are historical facts — only state them as-is, never use them to compute future amounts."
     )
 
     user_content = f"Context:\n{context_str}\n\nQuery: {query}"

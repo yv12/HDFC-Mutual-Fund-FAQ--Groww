@@ -41,6 +41,10 @@ chroma_data/
 # ─── Logs ───
 *.log
 
+# ─── SQLite / Local Databases ───
+*.db
+*.sqlite3
+
 # ─── Pytest ───
 .pytest_cache/
 htmlcov/

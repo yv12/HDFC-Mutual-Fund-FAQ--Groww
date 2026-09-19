@@ -225,7 +225,7 @@ function appendUserMessage(text) {
     scrollToBottom();
 }
 
-function appendAssistantMessage(text, sourceUrl, sourceScheme) {
+function appendAssistantMessage(text, sourceUrl, sourceScheme, followUp, queryType) {
     const msg = document.createElement('div');
     msg.className = 'message assistant';
     
@@ -253,31 +253,27 @@ function appendAssistantMessage(text, sourceUrl, sourceScheme) {
         </div>
     `;
     
-    // Follow up chips (hardcoded for now as per spec)
-    const lowerText = text.toLowerCase();
-    const chips = [];
-    if (lowerText.includes('expense ratio')) chips.push('What is the exit load?');
-    if (lowerText.includes('fund manager')) chips.push('What is the AUM?');
-    if (chips.length === 0) chips.push('Tell me more about this scheme');
-    
-    const chipsDiv = document.createElement('div');
-    chipsDiv.style.marginTop = '8px';
-    chipsDiv.style.display = 'flex';
-    chipsDiv.style.gap = '8px';
-    chipsDiv.style.flexWrap = 'wrap';
-    
-    chips.forEach(c => {
+    // Contextual follow-up chip — only show when backend provides one
+    // Never show on refusals, small-talk, or empty answers
+    const isRefusal = queryType && (queryType === 'advisory' || queryType === 'out_of_scope' || queryType === 'small_talk');
+    if (followUp && !isRefusal) {
+        const chipsDiv = document.createElement('div');
+        chipsDiv.style.marginTop = '8px';
+        chipsDiv.style.display = 'flex';
+        chipsDiv.style.gap = '8px';
+        chipsDiv.style.flexWrap = 'wrap';
+        
         const btn = document.createElement('button');
         btn.className = 'action-chip';
-        btn.textContent = c;
+        btn.textContent = followUp;
         btn.onclick = () => {
-            queryInput.value = c;
+            queryInput.value = followUp;
             chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
         };
         chipsDiv.appendChild(btn);
-    });
-    
-    msg.appendChild(chipsDiv);
+        
+        msg.appendChild(chipsDiv);
+    }
     
     chatThread.appendChild(msg);
     scrollToBottom();
@@ -366,12 +362,14 @@ async function sendMessageToAPI(query) {
         removeTyping();
 
         if (response.ok) {
-            appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name);
+            appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name, data.follow_up, data.query_type);
             updateSession(query, false, { 
                 role: 'assistant', 
                 content: data.answer,
                 source_url: data.citation?.source_url,
-                scheme_name: data.citation?.scheme_name
+                scheme_name: data.citation?.scheme_name,
+                follow_up: data.follow_up,
+                query_type: data.query_type
             });
         } else {
             // Immediate check sync on failure
@@ -400,8 +398,8 @@ async function sendMessageToAPI(query) {
                 const data = await response.json();
                 removeTyping();
                 if (response.ok) {
-                    appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name);
-                    updateSession(query, false, { role: 'assistant', content: data.answer });
+                    appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name, data.follow_up, data.query_type);
+                    updateSession(query, false, { role: 'assistant', content: data.answer, follow_up: data.follow_up, query_type: data.query_type });
                 } else {
                     appendErrorMessage(data.detail || 'Failed after retry.');
                 }
@@ -531,7 +529,7 @@ function loadSession(id) {
             if (msg.role === 'user') {
                 appendUserMessage(msg.content);
             } else {
-                appendAssistantMessage(msg.content, msg.source_url, msg.scheme_name);
+                appendAssistantMessage(msg.content, msg.source_url, msg.scheme_name, msg.follow_up, msg.query_type);
             }
         });
     }

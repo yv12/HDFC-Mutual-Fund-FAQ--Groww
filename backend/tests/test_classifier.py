@@ -5,6 +5,25 @@ Unit tests for the query classifier module.
 from app.pipeline.query_classifier import classify_query
 
 
+def test_classify_small_talk_queries():
+    """Verify that greetings, meta, and thanks are routed to small_talk."""
+    small_talk_queries = [
+        "hello",
+        "hi",
+        "hey!",
+        "good morning",
+        "what can you do?",
+        "who are you",
+        "thanks",
+        "thank you so much",
+        "bye",
+        "ok",
+        "got it",
+    ]
+    for q in small_talk_queries:
+        assert classify_query(q) == "small_talk", f"Query failed to classify as small_talk: {q}"
+
+
 def test_classify_factual_queries():
     """Verify that factual queries are correctly identified."""
     factual_queries = [
@@ -16,6 +35,7 @@ def test_classify_factual_queries():
         "what is the benchmark index for HDFC Large Cap Fund?",
         "What is the AUM of HDFC Defence?",
         "Is there a lock-in period for this mutual fund?",
+        "what are the returns of HDFC Mid Cap Fund",
     ]
     for q in factual_queries:
         assert classify_query(q) == "factual", f"Query failed to classify as factual: {q}"
@@ -37,6 +57,18 @@ def test_classify_advisory_queries():
         "If I invest 1000, how much will my money grow to in 5 years?",
         "SIP calculator for HDFC Mid Cap",
         "calculate future returns for 10 years",
+        # New: return projection / SEBI compliance
+        "how much can I make from 1,00,000",
+        "how much will I earn if I invest 50000",
+        "what if I invest 10000 monthly",
+        "how much should I invest",
+        "how much profit will i get",
+        # New: suitability
+        "is this fund safe?",
+        # New: timing
+        "should I invest now",
+        "is it a good time to invest",
+        "when should I invest",
     ]
     for q in advisory_queries:
         assert classify_query(q) == "advisory", f"Query failed to classify as advisory: {q}"
@@ -47,7 +79,6 @@ def test_classify_out_of_scope_queries():
     out_of_scope_queries = [
         "What is the weather today in Mumbai?",
         "Who won the cricket match yesterday?",
-        "hello",
         "tell me a joke",
         "how does a car work?",
     ]
@@ -59,3 +90,4 @@ def test_classify_empty_query():
     """Verify that empty queries fallback to out_of_scope."""
     assert classify_query("") == "out_of_scope"
     assert classify_query("   ") == "out_of_scope"
+

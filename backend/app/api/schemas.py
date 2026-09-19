@@ -53,5 +53,10 @@ class ChatResponse(BaseModel):
     )
     query_type: str = Field(
         ...,
-        description="Classification of the query: factual, advisory, out_of_scope, pii_blocked.",
+        description="Classification of the query: factual, advisory, out_of_scope, small_talk, pii_blocked.",
+    )
+    follow_up: str | None = Field(
+        default=None,
+        description="Optional contextual follow-up suggestion chip text. "
+                    "Only set when a specific fund was identified in the answer.",
     )

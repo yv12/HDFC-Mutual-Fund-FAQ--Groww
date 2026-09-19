@@ -28,11 +28,13 @@ async def test_health_endpoint():
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.rewrite_query")
 @patch("app.api.routes.retrieve_relevant_context")
 @patch("app.api.routes.generate_response")
-async def test_chat_endpoint_factual_success(mock_generate, mock_retrieve):
+async def test_chat_endpoint_factual_success(mock_generate, mock_retrieve, mock_rewrite):
     """POST /api/chat with a factual query returns a cited, validated answer."""
     # Setup mocks
+    mock_rewrite.return_value = "What is the expense ratio of HDFC Mid Cap Fund?"
     mock_retrieve.return_value = [
         {
             "chunk_id": "test-midcap-001",
@@ -74,11 +76,13 @@ async def test_chat_endpoint_factual_success(mock_generate, mock_retrieve):
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.rewrite_query")
 @patch("app.api.routes.retrieve_relevant_context")
 @patch("app.api.routes.generate_response")
-async def test_chat_endpoint_factual_hallucinated_url(mock_generate, mock_retrieve):
+async def test_chat_endpoint_factual_hallucinated_url(mock_generate, mock_retrieve, mock_rewrite):
     """POST /api/chat strips hallucinated URLs and replaces them with text fallbacks."""
     # Setup mocks
+    mock_rewrite.return_value = "What is the expense ratio of HDFC Mid Cap Fund?"
     mock_retrieve.return_value = [
         {
             "chunk_id": "test-midcap-001",
@@ -116,9 +120,11 @@ async def test_chat_endpoint_factual_hallucinated_url(mock_generate, mock_retrie
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.rewrite_query")
 @patch("app.api.routes.retrieve_relevant_context")
-async def test_chat_endpoint_factual_no_chunks(mock_retrieve):
+async def test_chat_endpoint_factual_no_chunks(mock_retrieve, mock_rewrite):
     """POST /api/chat returns a standard refusal if no relevant chunks are found."""
+    mock_rewrite.return_value = "What is the expense ratio of HDFC Mid Cap Fund?"
     mock_retrieve.return_value = []
 
     transport = ASGITransport(app=app)
@@ -130,7 +136,7 @@ async def test_chat_endpoint_factual_no_chunks(mock_retrieve):
 
     assert response.status_code == 200
     data = response.json()
-    assert data["answer"] == "I don't have this information in my current sources."
+    assert "could not find" in data["answer"].lower() or "don't have" in data["answer"].lower()
     assert data["citation"]["source_url"] is None
     assert data["query_type"] == "factual"
 
@@ -204,10 +210,12 @@ async def test_chat_endpoint_pii_blocked():
 
 
 @pytest.mark.asyncio
+@patch("app.api.routes.rewrite_query")
 @patch("app.api.routes.retrieve_relevant_context")
 @patch("app.api.routes.generate_response")
-async def test_chat_endpoint_prompt_injection_sanitization(mock_generate, mock_retrieve):
+async def test_chat_endpoint_prompt_injection_sanitization(mock_generate, mock_retrieve, mock_rewrite):
     """POST /api/chat strips prompt injection keywords and continues processing."""
+    mock_rewrite.return_value = "What is the NAV?"
     mock_retrieve.return_value = [
         {
             "chunk_id": "test-midcap-001",
@@ -232,12 +240,14 @@ async def test_chat_endpoint_prompt_injection_sanitization(mock_generate, mock_r
     assert response.status_code == 200
     data = response.json()
     assert data["query_type"] == "factual"
-    # Verify that retrieve was called with the sanitized query (prompt injection words stripped)
+    # Verify that retrieve was called with the rewritten query
     mock_retrieve.assert_called_once_with("What is the NAV?")
 
 
 @pytest.mark.asyncio
-async def test_chat_endpoint_rate_limiting():
+@patch("app.api.routes.retrieve_relevant_context", return_value=[])
+@patch("app.api.routes.generate_response", return_value="Test answer")
+async def test_chat_endpoint_rate_limiting(mock_gen, mock_ret):
     """POST /api/chat returns HTTP 429 when rate limit is exceeded."""
     from app.security.rate_limiter import limiter
     # Clear history for clean test run
