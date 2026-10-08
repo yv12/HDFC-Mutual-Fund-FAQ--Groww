@@ -144,6 +144,12 @@ def classify_query(query: str) -> str:
         if re.search(pattern, s):
             logger.info("Query '%s' classified as FACTUAL matching pattern '%s'", query, pattern)
             return "factual"
+
+    # 5. Check if query mentions an HDFC fund name / alias (e.g. user selected a fund chip or asked about a fund)
+    from app.pipeline.query_rewriter import extract_fund_from_text
+    if extract_fund_from_text(query):
+        logger.info("Query '%s' contains HDFC scheme name, classified as FACTUAL", query)
+        return "factual"
             
     # 5. Fallback to out_of_scope
     logger.info("Query '%s' classified as OUT_OF_SCOPE (no matching patterns)", query)

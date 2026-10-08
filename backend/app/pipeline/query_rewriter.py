@@ -166,6 +166,7 @@ def rewrite_query(query: str, history: list[dict[str, Any]] | None = None) -> st
         "You must:\n"
         "1. Resolve pronouns and vague references using the conversation history below.\n"
         "   - 'this scheme', 'that fund', 'it', 'this one', 'the same fund' → replace with the actual fund name from history.\n"
+        "   - If the new query is just a fund name (e.g. 'HDFC Large Cap Fund') and the conversation history asked for a specific attribute (like expense ratio, exit load, NAV, returns, fund manager), carry that attribute over (e.g. 'Expense ratio of HDFC Large Cap Fund Direct Growth').\n"
         "2. Replace any slang, acronyms, or informal aliases with the official HDFC Mutual Fund scheme names.\n"
         "3. Expand abbreviations (e.g., 'ER' → 'expense ratio', 'AUM' → keep as AUM).\n"
         "4. Normalize to a clear, plain question.\n\n"
