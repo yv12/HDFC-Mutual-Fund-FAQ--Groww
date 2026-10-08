@@ -322,9 +322,12 @@ def query_similar(
     return _query_similar_chroma(query, _limit, where_filter)
 
 
-def reset_store() -> None:
+def reset_store(force: bool = False) -> None:
     """Reset the vector store collection (deletes all indexed records)."""
     if settings.vector_db_provider == "qdrant":
+        if settings.qdrant_collection_name == "mutual_fund_faq" and not force:
+            logger.warning("Safety guard blocked resetting production collection 'mutual_fund_faq' without force=True.")
+            raise RuntimeError("CRITICAL SAFETY GUARD: Cannot reset production vector database without force=True!")
         _reset_store_qdrant()
     else:
         _reset_store_chroma()

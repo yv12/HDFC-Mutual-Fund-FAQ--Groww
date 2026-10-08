@@ -25,6 +25,35 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 
+def _auto_seed_vector_store():
+    """Self-healing: check if vector store is empty, and automatically populate if 0 points."""
+    try:
+        import json
+        from pathlib import Path
+        from app.ingestion.chunker import Chunk
+        from app.ingestion.vector_store import add_chunks, _get_qdrant_client
+
+        if settings.vector_db_provider == "qdrant" and settings.qdrant_url:
+            client = _get_qdrant_client()
+            collection_name = settings.qdrant_collection_name
+            try:
+                info = client.get_collection(collection_name)
+                count = info.points_count or 0
+            except Exception:
+                count = 0
+
+            if count == 0:
+                chunks_file = Path(__file__).resolve().parent.parent / "data" / "chunks.json"
+                if chunks_file.is_file():
+                    print(f"  [Auto-Seed] Vector collection '{collection_name}' is empty. Auto-seeding from {chunks_file.name}...")
+                    raw = json.loads(chunks_file.read_text(encoding="utf-8"))
+                    chunks = [Chunk(**c) for c in raw]
+                    add_chunks(chunks)
+                    print(f"  [Auto-Seed] Successfully seeded {len(chunks)} chunks into vector store.")
+    except Exception as e:
+        print(f"  [Auto-Seed Warning] Could not auto-seed vector store: {e}")
+
+
 # ── Lifespan (startup / shutdown) ────────────────────────────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +68,10 @@ async def lifespan(app: FastAPI):
     print(f"  CORS Origins     : {settings.cors_origin_list}")
     print(f"  Rate Limit       : {settings.rate_limit_per_minute} req/min")
     print("=" * 60)
+    
+    # ── Self-healing auto-seed if vector database is empty ─────────
+    _auto_seed_vector_store()
+
     start_scheduler()
     yield
     # ── Shutdown ──────────────────────────────────────────────────

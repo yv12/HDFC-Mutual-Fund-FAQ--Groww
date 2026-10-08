@@ -14,6 +14,8 @@ const progressBar = document.getElementById('progress-bar-container');
 const historyList = document.getElementById('history-list');
 const popularList = document.getElementById('popular-list');
 const newChatBtn = document.getElementById('new-chat-btn');
+const headerNewChatBtn = document.getElementById('header-new-chat-btn');
+const closeRailBtn = document.getElementById('close-rail-btn');
 const hamburgerBtn = document.getElementById('hamburger-btn');
 const rightRail = document.getElementById('right-rail');
 const railBackdrop = document.getElementById('rail-backdrop');
@@ -193,13 +195,28 @@ function setOfflineState() {
 function renderEmptyState() {
     chatThread.innerHTML = `
         <div class="empty-state">
-            <h3>Ask factual questions about 5 HDFC schemes.</h3>
-            <p>Mid Cap, Small Cap, Large Cap (Top 100), Defence, Gold ETF</p>
-            <p>Last updated ${new Date().toLocaleDateString()}</p>
+            <div class="empty-state-badge">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 3v18h18"/>
+                    <path d="m19 9-5 5-4-4-3 3"/>
+                    <circle cx="19" cy="9" r="1.5" fill="currentColor"/>
+                </svg>
+            </div>
+            <h3>What would you like to know?</h3>
+            <p class="empty-state-desc">Ask factual questions about 5 HDFC schemes, sourced from Groww.</p>
             <div class="chips-container">
-                <button class="action-chip" onclick="setQueryAndFocus('Expense ratio of HDFC Mid Cap Fund')">Expense ratio of HDFC Mid Cap Fund</button>
-                <button class="action-chip" onclick="setQueryAndFocus('Minimum SIP amount')">Minimum SIP amount</button>
-                <button class="action-chip" onclick="setQueryAndFocus('Exit load on early redemption')">Exit load on early redemption</button>
+                <button class="action-chip" onclick="setQueryAndFocus('Expense ratio of HDFC Mid Cap Fund')">
+                    <span class="chip-dot">⚡</span> Expense ratio of HDFC Mid Cap
+                </button>
+                <button class="action-chip" onclick="setQueryAndFocus('Exit load of HDFC Small Cap Fund')">
+                    <span class="chip-dot">🛡️</span> Exit load of Small Cap Fund
+                </button>
+                <button class="action-chip" onclick="setQueryAndFocus('NAV of HDFC Defence Fund')">
+                    <span class="chip-dot">📈</span> NAV of HDFC Defence Fund
+                </button>
+                <button class="action-chip" onclick="setQueryAndFocus('Tell me about HDFC Large Cap Fund')">
+                    <span class="chip-dot">🏛️</span> Overview of Large Cap Fund
+                </button>
             </div>
         </div>
     `;
@@ -207,10 +224,11 @@ function renderEmptyState() {
 
 function setQueryAndFocus(text) {
     queryInput.value = text;
+    sendBtn.classList.add('has-text');
     queryInput.focus();
 }
 
-window.setQueryAndFocus = setQueryAndFocus; // Make available for inline onclick
+window.setQueryAndFocus = setQueryAndFocus;
 
 function appendUserMessage(text) {
     // Remove empty state if present
@@ -349,6 +367,7 @@ chatForm.addEventListener('submit', async (e) => {
     if (!query) return;
 
     queryInput.value = '';
+    sendBtn.classList.remove('has-text');
     
     // Append user message immediately
     appendUserMessage(query);
@@ -599,10 +618,29 @@ function renderPopular() {
 }
 
 // ==========================================
-// Events & Utilities
-// ==========================================
+newChatBtn.addEventListener('click', () => {
+    startNewSession();
+    if (window.innerWidth <= 900) closeMobileRail();
+});
 
-newChatBtn.addEventListener('click', startNewSession);
+if (headerNewChatBtn) {
+    headerNewChatBtn.addEventListener('click', () => {
+        startNewSession();
+        if (window.innerWidth <= 900) closeMobileRail();
+    });
+}
+
+if (closeRailBtn) {
+    closeRailBtn.addEventListener('click', closeMobileRail);
+}
+
+queryInput.addEventListener('input', () => {
+    if (queryInput.value.trim().length > 0) {
+        sendBtn.classList.add('has-text');
+    } else {
+        sendBtn.classList.remove('has-text');
+    }
+});
 
 hamburgerBtn.addEventListener('click', () => {
     const isOpen = rightRail.classList.contains('open');

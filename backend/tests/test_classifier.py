@@ -41,6 +41,22 @@ def test_classify_factual_queries():
         assert classify_query(q) == "factual", f"Query failed to classify as factual: {q}"
 
 
+def test_classify_scheme_names_alone_are_factual():
+    """Verify that clicking/sending bare scheme names (e.g. from disambiguation chips) is classified as factual."""
+    scheme_chip_queries = [
+        "HDFC Mid Cap Fund",
+        "HDFC Large Cap Fund (Top 100)",
+        "HDFC Small Cap Fund",
+        "HDFC Defence Fund",
+        "HDFC Gold ETF",
+        "HDFC Mid Cap Fund Direct Growth",
+        "HDFC Large Cap Fund Direct Growth",
+        "HDFC Small Cap Fund Direct Growth",
+    ]
+    for q in scheme_chip_queries:
+        assert classify_query(q) == "factual", f"Scheme name query failed to classify as factual: {q}"
+
+
 def test_classify_advisory_queries():
     """Verify that advisory or recommendation queries are correctly routed to advisory."""
     advisory_queries = [

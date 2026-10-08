@@ -138,8 +138,34 @@ html, body {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-shrink: 0;
+}
+
+.header-new-chat-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(22, 40, 30, 0.7);
+    border: 1px solid rgba(79, 207, 139, 0.25);
+    color: var(--accent-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    padding: 0;
+    flex-shrink: 0;
+}
+
+.header-new-chat-btn:hover {
+    background: rgba(46, 158, 107, 0.25);
+    border-color: var(--accent);
+    transform: scale(1.05);
+}
+
+.header-new-chat-btn:active {
+    transform: scale(0.95);
 }
 
 /* Status Pill */
@@ -333,53 +359,94 @@ html, body {
     min-height: 0;
 }
 
-/* Empty State */
+/* Empty State — Clean ChatGPT / Claude Welcome Interface */
 .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     height: 100%;
+    min-height: 340px;
     text-align: center;
-    gap: 8px;
-    max-width: 480px;
-    margin: 0 auto;
+    gap: 10px;
+    max-width: 520px;
+    margin: auto;
+    padding: 24px 16px;
+}
+
+.empty-state-badge {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, rgba(46, 158, 107, 0.25), rgba(22, 40, 30, 0.8));
+    border: 1px solid rgba(79, 207, 139, 0.35);
+    color: var(--accent-text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 6px;
+    box-shadow: 0 0 20px rgba(46, 158, 107, 0.2);
 }
 
 .empty-state h3 {
-    font-size: 14px;
-    font-weight: 500;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.015em;
+    line-height: 1.3;
 }
 
-.empty-state p {
+.empty-state-desc {
     color: var(--text-muted);
+    font-size: 13px;
+    max-width: 360px;
+    line-height: 1.5;
 }
 
 .empty-state .chips-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-top: 20px;
 }
 
 .action-chip {
-    background-color: transparent;
-    border: 1px solid var(--border);
+    background: rgba(20, 27, 23, 0.7);
+    border: 1px solid rgba(37, 48, 41, 0.9);
     color: var(--text);
-    padding: 6px 12px;
-    border-radius: 99px;
-    font-size: 12px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 500;
     cursor: pointer;
     font-family: inherit;
-    transition: background-color 0.15s, border-color 0.15s;
+    transition: all 0.18s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    line-height: 1.35;
 }
 
-.action-chip:hover, .action-chip:focus-visible {
-    background-color: var(--accent-bg);
-    border-color: var(--accent);
-    color: var(--accent-text);
-    outline: none;
+.action-chip .chip-dot {
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.action-chip:hover {
+    background: rgba(46, 158, 107, 0.16);
+    border-color: rgba(79, 207, 139, 0.4);
+    color: #4FCF8B;
+    transform: translateY(-1px);
+}
+
+.action-chip:active {
+    transform: scale(0.97);
+    background: rgba(46, 158, 107, 0.28);
 }
 
 /* Messages */
@@ -471,12 +538,18 @@ html, body {
     40% { transform: scale(1); }
 }
 
-/* Input Area — Always visible, never pushed off screen */
+/* Input Area — Floating capsule bar like ChatGPT / Claude */
 .input-area {
-    padding: 16px 24px 24px;
-    background-color: var(--bg-page);
+    padding: 10px 18px max(14px, env(safe-area-inset-bottom, 14px));
+    background: linear-gradient(180deg, rgba(12, 17, 14, 0.7) 0%, rgba(12, 17, 14, 0.98) 35%);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
     flex-shrink: 0;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid rgba(37, 48, 41, 0.6);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
 }
 
 .queued-note {
@@ -485,7 +558,6 @@ html, body {
     color: var(--warning);
     padding: 8px 12px;
     font-size: 12px;
-    margin-bottom: 12px;
     border-radius: 0 4px 4px 0;
 }
 
@@ -495,58 +567,88 @@ html, body {
 
 .chat-form {
     display: flex;
-    gap: 12px;
-    align-items: flex-end;
+    width: 100%;
+}
+
+.input-pill {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 4px 6px 4px 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input-pill:focus-within {
+    border-color: rgba(79, 207, 139, 0.5);
+    box-shadow: 0 0 0 2px rgba(46, 158, 107, 0.2), 0 4px 24px rgba(0, 0, 0, 0.4);
 }
 
 .query-input {
     flex: 1;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: none;
+    outline: none;
     color: var(--text);
-    padding: 12px 16px;
-    border-radius: 8px;
+    padding: 10px 8px 10px 0;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 15px;
     min-width: 0;
+    line-height: 1.4;
 }
 
-.query-input:focus {
-    outline: none;
-    border-color: var(--accent);
+.query-input::placeholder {
+    color: #627267;
 }
 
 .send-btn {
-    background-color: var(--accent-bg);
-    color: var(--accent-text);
-    border: 1px solid transparent;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 500;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: rgba(46, 158, 107, 0.15);
+    color: #55665C;
+    border: 1px solid rgba(46, 158, 107, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    transition: background-color 0.1s;
     flex-shrink: 0;
-    white-space: nowrap;
+    transition: all 0.2s ease;
+    padding: 0;
 }
 
-.send-btn:hover {
-    background-color: #1a3324;
+.send-btn svg {
+    transition: transform 0.15s ease;
 }
 
-.send-btn:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+.send-btn.has-text {
+    background: linear-gradient(135deg, #2E9E6B, #4FCF8B);
+    color: #0C110E;
+    border-color: #4FCF8B;
+    box-shadow: 0 0 14px rgba(79, 207, 139, 0.45);
 }
 
-.send-btn.queue-mode {
-    background-color: var(--warning-bg);
-    color: var(--warning);
+.send-btn.has-text:hover {
+    transform: scale(1.06);
+}
+
+.send-btn:active {
+    transform: scale(0.92);
+}
+
+.input-footer-note {
+    text-align: center;
+    font-size: 11px;
+    color: #5E6E64;
+    letter-spacing: 0.01em;
+    user-select: none;
 }
 
 /* ============================================
-   RIGHT RAIL (History & Popular) — Redesigned
+   RIGHT RAIL (Drawer Sidebar) — Redesigned
    ============================================ */
 .right-rail {
     display: flex;
@@ -560,17 +662,34 @@ html, body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
+    padding: 14px 16px;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
 }
 
-.rail-header h2 {
-    font-size: 13px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
+.rail-header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+}
+
+.rail-header-title h2 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text);
+}
+
+.rail-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.close-rail-btn {
+    display: none;
+}
 }
 
 .icon-btn {
@@ -805,7 +924,7 @@ html, body {
 }
 
 /* ============================================
-   MOBILE RESPONSIVENESS
+   MOBILE RESPONSIVENESS — ChatGPT / Claude Feel
    ============================================ */
 .rail-backdrop {
     display: none;
@@ -814,17 +933,38 @@ html, body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(12, 17, 14, 0.8);
-    z-index: 10;
+    background-color: rgba(6, 9, 7, 0.7);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    z-index: 90;
+    opacity: 0;
+    transition: opacity 0.25s ease;
 }
 
 @media (max-width: 900px) {
+    html, body {
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+        overscroll-behavior-y: none;
+    }
+
+    .app-header {
+        height: 52px;
+        min-height: 52px;
+        padding: 0 12px;
+    }
+
     .app-body {
         display: flex;
+        flex: 1;
+        min-height: 0;
+        position: relative;
     }
     
     .chat-column {
         flex: 1;
+        width: 100%;
         border-right: none;
     }
     
@@ -832,52 +972,111 @@ html, body {
         display: flex;
     }
     
+    .header-new-chat-btn {
+        display: flex;
+    }
+
+    /* Left-sliding drawer like ChatGPT / Claude */
     .right-rail {
         position: fixed;
         top: 0;
-        right: -320px;
+        left: 0;
+        right: auto;
         bottom: 0;
-        width: 320px;
-        z-index: 20;
-        border-left: 1px solid var(--border);
-        transition: right 0.3s ease;
+        width: min(320px, 84vw);
+        z-index: 100;
+        border-right: 1px solid var(--border);
+        border-left: none;
+        background: #101612;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: none;
     }
     
     .right-rail.open {
-        right: 0;
+        transform: translateX(0);
+        box-shadow: 12px 0 40px rgba(0, 0, 0, 0.6);
+    }
+
+    .close-rail-btn {
+        display: flex;
     }
     
     .rail-backdrop.open {
         display: block;
+        opacity: 1;
     }
     
+    /* Clean vertical feed */
     .chat-thread {
-        padding: 16px;
+        padding: 14px 12px 18px;
+        gap: 16px;
+        overscroll-behavior-y: contain;
     }
     
-    .input-area {
-        padding: 12px 16px 16px;
+    /* Hide news ticker on mobile so chat gets full vertical screen */
+    .news-ticker {
+        display: none;
     }
-    
+
+    .empty-state {
+        min-height: auto;
+        padding: 24px 10px;
+    }
+
+    .empty-state h3 {
+        font-size: 17px;
+    }
+
+    .empty-state .chips-container {
+        grid-template-columns: 1fr;
+        max-width: 320px;
+        gap: 8px;
+    }
+
     .message-bubble {
         max-width: 90%;
+        font-size: 14.5px;
+        line-height: 1.55;
     }
     
     .message.assistant .message-bubble {
-        max-width: 95%;
+        max-width: 98%;
     }
 
-    /* Hide status text & brand subtitle on mobile screens */
+    /* Hide text label on mobile, keep glowing dot */
     .status-label,
     .brand-subtitle {
         display: none;
     }
 
-    .news-ticker {
-        font-size: 12px;
-        padding: 6px 0;
-        min-height: 30px;
-        max-height: 34px;
+    .status-pill {
+        padding: 4px 7px;
+    }
+
+    /* Input area docked to bottom with safe-area insets */
+    .input-area {
+        padding: 8px 12px max(10px, env(safe-area-inset-bottom, 10px));
+        gap: 6px;
+    }
+
+    .input-pill {
+        padding: 3px 5px 3px 14px;
+        border-radius: 24px;
+    }
+
+    .query-input {
+        font-size: 16px; /* 16px prevents iOS Safari auto-zoom */
+        padding: 8px 6px 8px 0;
+    }
+
+    .send-btn {
+        width: 34px;
+        height: 34px;
+    }
+
+    .input-footer-note {
+        font-size: 10.5px;
     }
 }
 
@@ -904,20 +1103,10 @@ html, body {
     .app-header {
         height: 48px;
         min-height: 48px;
-        padding: 0 12px;
+        padding: 0 10px;
     }
 
     .input-area {
-        padding: 10px 12px 14px;
-    }
-
-    .query-input {
-        padding: 10px 12px;
-        font-size: 13px;
-    }
-
-    .send-btn {
-        padding: 10px 14px;
-        font-size: 13px;
+        padding: 6px 10px max(8px, env(safe-area-inset-bottom, 8px));
     }
 }
