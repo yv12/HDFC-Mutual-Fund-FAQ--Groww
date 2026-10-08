@@ -2,13 +2,16 @@
 
 import pytest
 
+from app.config import settings
 from app.ingestion.chunker import Chunk
 from app.ingestion.vector_store import add_chunks, query_similar, reset_store
 
 
 @pytest.fixture(autouse=True)
-def run_around_tests():
-    """Wipe collection before and after every test to run in isolation."""
+def run_around_tests(monkeypatch):
+    """Wipe isolated test collection before and after every test so production is never touched."""
+    monkeypatch.setattr(settings, "qdrant_collection_name", "test_mutual_fund_faq")
+    monkeypatch.setattr(settings, "chroma_collection_name", "test_mutual_fund_faq")
     reset_store()
     yield
     reset_store()
