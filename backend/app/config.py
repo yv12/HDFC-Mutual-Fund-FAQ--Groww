@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     llm_model: str = "grok-3-mini"
 
     # ── Embedding ─────────────────────────────────────────────────
-    # Provider: "local" (sentence-transformers) or "api" (HuggingFace Inference API)
+    # Provider: "local" (sentence-transformers), "api" (HuggingFace), or "cloudflare" (Workers AI)
     embedding_provider: str = "local"
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_dimensions: int = 1024
@@ -38,6 +38,10 @@ class Settings(BaseSettings):
 
     # ── HuggingFace Inference API (used when embedding_provider="api") ──
     hf_api_token: str = ""
+
+    # ── Cloudflare Workers AI (used when embedding_provider="cloudflare") ──
+    cloudflare_account_id: str = ""
+    cloudflare_api_token: str = ""
 
     # ── Vector Store Provider ─────────────────────────────────────
     # Provider: "chroma" (local ChromaDB) or "qdrant" (Qdrant Cloud)

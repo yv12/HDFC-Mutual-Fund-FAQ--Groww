@@ -76,7 +76,7 @@ ADVISORY_KEYWORDS = [
 
     # ── Comparison framed as "which is better" / fund vs fund ─────
     r"\bwhich is better\b", r"\bwhich is best\b", r"\bbetter option\b", r"\bbest fund\b",
-    r"\bcompare\s+.*(?:and|vs|versus)\b",
+    r"\bcompare\s+.*(?:and|vs|versus|with)\b",
     r"\bcompare\s+(?:the\s+)?(?:funds?|schemes?)\b",
     r"\b(?:fund|scheme)\s+comparison\b",
     r"\bcomparison\s+between\b",

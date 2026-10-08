@@ -19,15 +19,18 @@ logger = logging.getLogger(__name__)
 
 # Route query keywords to exact database scheme names.
 SCHEME_ROUTING_MAP = {
-    # Mid Cap Fund — official short names
+    # Mid Cap Fund — official short names & Groww aliases
     "mid cap": "HDFC Mid Cap Fund Direct Growth",
     "mid-cap": "HDFC Mid Cap Fund Direct Growth",
     "midcap": "HDFC Mid Cap Fund Direct Growth",
+    "opportunities": "HDFC Mid Cap Fund Direct Growth",
 
-    # Large Cap Fund — official short names
+    # Large Cap Fund — official short names & Groww aliases
     "large cap": "HDFC Large Cap Fund Direct Growth",
     "large-cap": "HDFC Large Cap Fund Direct Growth",
     "largecap": "HDFC Large Cap Fund Direct Growth",
+    "top 100": "HDFC Large Cap Fund Direct Growth",
+    "top100": "HDFC Large Cap Fund Direct Growth",
 
     # Small Cap Fund
     "small cap": "HDFC Small Cap Fund Direct Growth",

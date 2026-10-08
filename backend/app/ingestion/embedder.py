@@ -141,12 +141,78 @@ def _embed_query_api(query: str) -> list[float]:
 
 
 # =====================================================================
+# Cloudflare Workers AI provider (@cf/baai/bge-large-en-v1.5)
+# =====================================================================
+
+def _cf_feature_extraction(texts: str | Sequence[str], max_retries: int = 3) -> list[float] | list[list[float]]:
+    """Call Cloudflare Workers AI with retry logic for @cf/baai/bge-large-en-v1.5 embeddings."""
+    import requests
+
+    account_id = settings.cloudflare_account_id
+    token = settings.cloudflare_api_token
+    if not account_id or not token:
+        raise ValueError(
+            "CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN are required when EMBEDDING_PROVIDER='cloudflare'."
+        )
+
+    url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/baai/bge-large-en-v1.5"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    is_single = isinstance(texts, str)
+    payload = {"text": [texts] if is_single else list(texts)}
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            resp = requests.post(url, headers=headers, json=payload, timeout=30)
+            if resp.status_code == 429:
+                wait = 2 ** attempt
+                logger.warning("Cloudflare Workers AI rate limit hit. Retrying in %ds...", wait)
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            if not data.get("success"):
+                raise RuntimeError(f"Cloudflare Workers AI error: {data.get('errors')}")
+            result_data = data.get("result", {}).get("data", [])
+            if is_single:
+                return [float(v) for v in result_data[0]]
+            return [[float(v) for v in vec] for vec in result_data]
+        except Exception as exc:
+            if attempt == max_retries:
+                logger.error("Cloudflare Workers AI error: %s", exc)
+                raise
+            time.sleep(2 ** attempt)
+    raise RuntimeError(f"Cloudflare Workers AI failed after {max_retries} retries")
+
+
+def _embed_texts_cloudflare(texts: Sequence[str]) -> list[list[float]]:
+    """Generate embeddings via Cloudflare Workers AI (batch)."""
+    results = []
+    batch_size = 25
+    for i in range(0, len(texts), batch_size):
+        batch = texts[i : i + batch_size]
+        results.extend(_cf_feature_extraction(batch))
+    return results
+
+
+def _embed_query_cloudflare(query: str) -> list[float]:
+    """Generate a single query embedding via Cloudflare Workers AI."""
+    full_query = f"{_BGE_QUERY_PREFIX}{query}"
+    return _cf_feature_extraction(full_query)
+
+
+# =====================================================================
 # Public API (provider-agnostic)
 # =====================================================================
 
 def get_embedding_model():
     """Return the model instance (local) or client (API) — for backward compatibility."""
-    if settings.embedding_provider == "api":
+    provider = settings.embedding_provider.lower()
+    if provider == "cloudflare":
+        return "cloudflare"
+    elif provider == "api":
         return _get_hf_client()
     return _get_local_model()
 
@@ -159,7 +225,11 @@ def embed_texts(texts: Sequence[str]) -> list[list[float]]:
     if not texts:
         return []
 
-    if settings.embedding_provider == "api":
+    provider = settings.embedding_provider.lower()
+    if provider == "cloudflare":
+        logger.info("Embedding %d texts via Cloudflare Workers AI ...", len(texts))
+        return _embed_texts_cloudflare(texts)
+    elif provider == "api":
         logger.info("Embedding %d texts via HuggingFace Inference API ...", len(texts))
         return _embed_texts_api(texts)
     else:
@@ -172,7 +242,10 @@ def embed_query(query: str) -> list[float]:
     Generate embedding for a single search query.
     Prepends the required asymmetric search instruction prefix for BGE models.
     """
-    if settings.embedding_provider == "api":
+    provider = settings.embedding_provider.lower()
+    if provider == "cloudflare":
+        return _embed_query_cloudflare(query)
+    elif provider == "api":
         return _embed_query_api(query)
     else:
         return _embed_query_local(query)

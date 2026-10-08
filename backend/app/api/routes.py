@@ -9,7 +9,7 @@ from app.api.schemas import ChatRequest, CitationInfo, ChatResponse
 from app.pipeline.query_classifier import classify_query
 from app.pipeline.retriever import retrieve_relevant_context
 from app.pipeline.generator import generate_response
-from app.pipeline.query_rewriter import rewrite_query
+from app.pipeline.query_rewriter import rewrite_query, detect_ambiguous_scheme_query
 from app.pipeline.citation_validator import validate_citations
 from app.pipeline.refusal_handler import handle_refusal, handle_small_talk
 from app.security.pii_scanner import scan_pii
@@ -95,11 +95,34 @@ async def chat(request: ChatRequest):
         logger.info("Returning refusal response for type '%s'", q_type)
         return response
 
+    # 3c. Ambiguity check: if asking for scheme-specific attributes without scheme context, disambiguate proactively
+    is_ambiguous, detected_attr, clarification_options = detect_ambiguous_scheme_query(sanitized_query, history)
+    if is_ambiguous:
+        logger.info("Query is ambiguous (attribute='%s'). Returning scheme disambiguation options.", detected_attr)
+        clarification_msg = "Which HDFC scheme are you asking about? Please select one below:"
+        add_message(session_id, "user", raw_query)
+        add_message(session_id, "assistant", clarification_msg)
+        return ChatResponse(
+            answer=clarification_msg,
+            citation=CitationInfo(),
+            footer="HDFC Mutual Fund FAQ Assistant",
+            query_type="clarification",
+            options=clarification_options,
+        )
+
     # 4. Normalize query via LLM to resolve aliases AND pronouns from history
     rewritten_query = rewrite_query(sanitized_query, history)
 
     # 5. Retrieve relevant context (factual) using the normalized query
     chunks = retrieve_relevant_context(rewritten_query)
+
+    default_scheme_options = [
+        "HDFC Mid Cap Fund",
+        "HDFC Large Cap Fund (Top 100)",
+        "HDFC Small Cap Fund",
+        "HDFC Defence Fund",
+        "HDFC Gold ETF",
+    ]
 
     if not chunks:
         logger.info("No relevant chunks found above similarity threshold.")
@@ -108,6 +131,7 @@ async def chat(request: ChatRequest):
             citation=CitationInfo(),
             footer="HDFC Mutual Fund FAQ Assistant",
             query_type="factual",
+            options=default_scheme_options,
         )
 
     # 6. Generate response using LLM (using the rewritten query so the context matches)
@@ -121,6 +145,7 @@ async def chat(request: ChatRequest):
             citation=CitationInfo(),
             footer="HDFC Mutual Fund FAQ Assistant",
             query_type="factual",
+            options=default_scheme_options,
         )
 
     # 7. Validate citations & post-process

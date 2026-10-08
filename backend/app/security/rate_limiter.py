@@ -63,7 +63,16 @@ async def rate_limit_dependency(request: Request) -> None:
     Raises:
         HTTPException with status code 429 when rate limit is exceeded.
     """
-    client_ip = request.client.host if request.client else "127.0.0.1"
+    forwarded = request.headers.get("X-Forwarded-For")
+    real_ip = request.headers.get("X-Real-IP")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    elif real_ip:
+        client_ip = real_ip.strip()
+    elif request.client:
+        client_ip = request.client.host
+    else:
+        client_ip = "127.0.0.1"
 
     if not limiter.check_rate_limit(client_ip):
         raise HTTPException(

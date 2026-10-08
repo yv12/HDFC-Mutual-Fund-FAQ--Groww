@@ -1,6 +1,5 @@
-// Configuration
 const API_BASE_URL = 'https://hdfc-mutual-fund-faq-groww-production.up.railway.app';
-const SCHEMES = ["Mid Cap", "Small Cap", "Flexi Cap", "Balanced Advantage", "Top 100"];
+const SCHEMES = ["Mid Cap", "Small Cap", "Large Cap", "Defence", "Gold ETF"];
 
 // DOM Elements
 const chatThread = document.getElementById('chat-thread');
@@ -195,7 +194,7 @@ function renderEmptyState() {
     chatThread.innerHTML = `
         <div class="empty-state">
             <h3>Ask factual questions about 5 HDFC schemes.</h3>
-            <p>Mid Cap, Small Cap, Flexi Cap, Balanced Advantage, Top 100</p>
+            <p>Mid Cap, Small Cap, Large Cap (Top 100), Defence, Gold ETF</p>
             <p>Last updated ${new Date().toLocaleDateString()}</p>
             <div class="chips-container">
                 <button class="action-chip" onclick="setQueryAndFocus('Expense ratio of HDFC Mid Cap Fund')">Expense ratio of HDFC Mid Cap Fund</button>
@@ -225,7 +224,7 @@ function appendUserMessage(text) {
     scrollToBottom();
 }
 
-function appendAssistantMessage(text, sourceUrl, sourceScheme, followUp, queryType) {
+function appendAssistantMessage(text, sourceUrl, sourceScheme, followUp, queryType, options) {
     const msg = document.createElement('div');
     msg.className = 'message assistant';
     
@@ -253,26 +252,48 @@ function appendAssistantMessage(text, sourceUrl, sourceScheme, followUp, queryTy
         </div>
     `;
     
-    // Contextual follow-up chip — only show when backend provides one
-    // Never show on refusals, small-talk, or empty answers
-    const isRefusal = queryType && (queryType === 'advisory' || queryType === 'out_of_scope' || queryType === 'small_talk');
-    if (followUp && !isRefusal) {
+    // Interactive clarification chips for disambiguation or multi-options
+    if (options && Array.isArray(options) && options.length > 0) {
         const chipsDiv = document.createElement('div');
-        chipsDiv.style.marginTop = '8px';
+        chipsDiv.style.marginTop = '10px';
         chipsDiv.style.display = 'flex';
         chipsDiv.style.gap = '8px';
         chipsDiv.style.flexWrap = 'wrap';
         
-        const btn = document.createElement('button');
-        btn.className = 'action-chip';
-        btn.textContent = followUp;
-        btn.onclick = () => {
-            queryInput.value = followUp;
-            chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
-        };
-        chipsDiv.appendChild(btn);
+        options.forEach(optText => {
+            const btn = document.createElement('button');
+            btn.className = 'action-chip';
+            btn.textContent = optText;
+            btn.onclick = () => {
+                queryInput.value = optText;
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            };
+            chipsDiv.appendChild(btn);
+        });
         
         msg.appendChild(chipsDiv);
+    } else {
+        // Contextual follow-up chip — only show when backend provides one
+        // Never show on refusals, small-talk, or empty answers
+        const isRefusal = queryType && (queryType === 'advisory' || queryType === 'out_of_scope' || queryType === 'small_talk');
+        if (followUp && !isRefusal) {
+            const chipsDiv = document.createElement('div');
+            chipsDiv.style.marginTop = '8px';
+            chipsDiv.style.display = 'flex';
+            chipsDiv.style.gap = '8px';
+            chipsDiv.style.flexWrap = 'wrap';
+            
+            const btn = document.createElement('button');
+            btn.className = 'action-chip';
+            btn.textContent = followUp;
+            btn.onclick = () => {
+                queryInput.value = followUp;
+                chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+            };
+            chipsDiv.appendChild(btn);
+            
+            msg.appendChild(chipsDiv);
+        }
     }
     
     chatThread.appendChild(msg);
@@ -362,14 +383,15 @@ async function sendMessageToAPI(query) {
         removeTyping();
 
         if (response.ok) {
-            appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name, data.follow_up, data.query_type);
+            appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name, data.follow_up, data.query_type, data.options);
             updateSession(query, false, { 
                 role: 'assistant', 
                 content: data.answer,
                 source_url: data.citation?.source_url,
                 scheme_name: data.citation?.scheme_name,
                 follow_up: data.follow_up,
-                query_type: data.query_type
+                query_type: data.query_type,
+                options: data.options
             });
         } else {
             // Immediate check sync on failure
@@ -398,8 +420,8 @@ async function sendMessageToAPI(query) {
                 const data = await response.json();
                 removeTyping();
                 if (response.ok) {
-                    appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name, data.follow_up, data.query_type);
-                    updateSession(query, false, { role: 'assistant', content: data.answer, follow_up: data.follow_up, query_type: data.query_type });
+                    appendAssistantMessage(data.answer, data.citation?.source_url, data.citation?.scheme_name, data.follow_up, data.query_type, data.options);
+                    updateSession(query, false, { role: 'assistant', content: data.answer, follow_up: data.follow_up, query_type: data.query_type, options: data.options });
                 } else {
                     appendErrorMessage(data.detail || 'Failed after retry.');
                 }
@@ -529,7 +551,7 @@ function loadSession(id) {
             if (msg.role === 'user') {
                 appendUserMessage(msg.content);
             } else {
-                appendAssistantMessage(msg.content, msg.source_url, msg.scheme_name, msg.follow_up, msg.query_type);
+                appendAssistantMessage(msg.content, msg.source_url, msg.scheme_name, msg.follow_up, msg.query_type, msg.options);
             }
         });
     }

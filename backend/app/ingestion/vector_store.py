@@ -230,13 +230,25 @@ def _query_similar_qdrant(query: str, limit: int, where_filter: dict | None) -> 
         qdrant_filter = Filter(must=conditions)
 
     logger.debug("Querying Qdrant (limit=%d, filter=%s)", limit, where_filter)
-    results = client.query_points(
-        collection_name=collection_name,
-        query=query_vector,
-        limit=limit,
-        query_filter=qdrant_filter,
-        with_payload=True,
-    )
+    try:
+        results = client.query_points(
+            collection_name=collection_name,
+            query=query_vector,
+            limit=limit,
+            query_filter=qdrant_filter,
+            with_payload=True,
+        )
+    except Exception as exc:
+        error_msg = str(exc).lower()
+        if "404" in error_msg or "doesn't exist" in error_msg or "not found" in error_msg:
+            logger.warning("Qdrant collection '%s' does not exist. Initializing empty collection.", collection_name)
+            try:
+                _ensure_qdrant_collection()
+            except Exception as init_exc:
+                logger.error("Failed to auto-create Qdrant collection: %s", init_exc)
+            return []
+        logger.error("Error querying Qdrant: %s", exc)
+        return []
 
     formatted_results = []
     for point in results.points:
