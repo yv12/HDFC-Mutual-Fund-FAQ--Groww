@@ -170,29 +170,6 @@ html, body {
 
 /* Status Pill */
 
-.case-study-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 11px;
-    border-radius: 99px;
-    font-size: 12px;
-    font-weight: 500;
-    background: rgba(16, 185, 129, 0.12);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-    color: #34d399;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: all 0.2s ease;
-}
-
-.case-study-badge:hover {
-    background: rgba(16, 185, 129, 0.22);
-    border-color: rgba(16, 185, 129, 0.6);
-    color: #6ee7b7;
-    transform: translateY(-1px);
-}
-
 .status-pill {
     display: flex;
     align-items: center;
@@ -1149,88 +1126,4 @@ html, body {
     letter-spacing: 0.3px;
     border-top: 1px solid var(--border);
     background-color: var(--bg-page);
-}
-
-/* ============================================
-   DECK SHOWCASE (Right Rail & Empty State)
-   ============================================ */
-.deck-showcase-section {
-    border-top: 1px solid var(--border);
-    background-color: var(--bg-page);
-    flex-shrink: 0;
-    padding-bottom: 12px;
-}
-
-.deck-showcase-card {
-    display: block;
-    margin: 4px 16px 8px;
-    background: rgba(20, 27, 23, 0.7);
-    border: 1px solid rgba(46, 158, 107, 0.25);
-    border-radius: 12px;
-    overflow: hidden;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.deck-showcase-card:hover {
-    border-color: rgba(46, 158, 107, 0.6);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-}
-
-.deck-thumb-wrap {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 16 / 9;
-    background: #01140D;
-    overflow: hidden;
-}
-
-.deck-thumb-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-}
-
-.deck-slides-tag {
-    position: absolute;
-    bottom: 6px;
-    right: 6px;
-    background: rgba(0, 0, 0, 0.8);
-    color: #4fcf8b;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 4px;
-    border: 1px solid rgba(79, 207, 139, 0.3);
-    backdrop-filter: blur(4px);
-}
-
-.deck-info {
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.deck-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-}
-
-.deck-desc {
-    font-size: 11px;
-    color: var(--text-muted);
-}
-
-.deck-cta {
-    margin-top: 4px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #34d399;
 }
