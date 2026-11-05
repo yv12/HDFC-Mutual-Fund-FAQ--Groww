@@ -246,3 +246,55 @@ FILES CHANGED IN THIS FIX SESSION
 ============================================================
 END OF FIX LOG
 ============================================================
+
+09-10-26
+
+Listed directory tests
+
+To guarantee these issues never happen again, here are **5 concrete safeguards** we can build into the system:
+
+---
+
+### Safeguards for Issue 1: Database Wiping & Missing Points
+
+#### 1. Global Pytest Safety Lock (`conftest.py`)
+* **How it works:** A global test configuration (`tests/conftest.py`) that runs before any test executes. It overrides `qdrant_collection_name` to `test_mutual_fund_faq` across the entire test suite.
+* **Why it prevents repeats:** Even if a developer or test script calls `reset_store()` anywhere in any test file in the future, it will **physically never touch** the production `mutual_fund_faq` collection.
+
+#### 2. Code-Level Production Deletion Guard
+* **How it works:** In [`vector_store.py`](file:///d:/RAG%20Chatbot/backend/app/ingestion/vector_store.py#L325), add a hard safety check to `reset_store()`:
+  ```python
+  def reset_store(force: bool = False):
+      if settings.qdrant_collection_name == "mutual_fund_faq" and not force:
+          raise RuntimeError("CRITICAL SAFETY GUARD: Cannot reset production vector database without force=True!")
+  ```
+* **Why it prevents repeats:** Prevents accidental deletion from code or scripts unless an explicit `force=True` flag is passed.
+
+#### 3. Automatic Startup Self-Healing (Auto-Seed)
+* **How it works:** In `backend/app/main.py` during server startup (lifespan):
+  - Check the vector collection point count.
+  - If `count == 0`, automatically load and embed `backend/data/chunks.json` into the vector store.
+* **Why it prevents repeats:** If the database is ever empty (e.g. fresh database migration, accidental drop, or new environment), the server **self-heals immediately on boot** without any user seeing "I could not find that in my sources".
+
+---
+
+### Safeguards for Issue 2: Chip Click Refusals & Disambiguation
+
+#### 4. Automated Regression Tests for All Approved Scheme Names
+* **How it works:** Add explicit tests in `test_classifier.py` verifying that sending *only* the scheme name for each of the 5 approved funds:
+  - `"HDFC Mid Cap Fund"`
+  - `"HDFC Large Cap Fund (Top 100)"`
+  - `"HDFC Small Cap Fund"`
+  - `"HDFC Defence Fund"`
+  - `"HDFC Gold ETF"`
+  always returns `factual` and never `out_of_scope`.
+* **Why it prevents repeats:** Any future change to classification keywords will be caught by CI/tests before deployment.
+
+#### 5. Context-Preserving Chip Labels
+* **How it works:** When the chatbot suggests disambiguation options, format the chips with the intent (e.g., *"Expense ratio of HDFC Large Cap Fund"* or *"Overview of HDFC Large Cap Fund"*) instead of just bare fund names whenever an attribute is known.
+* **Why it prevents repeats:** Eliminates ambiguity at the frontend payload level.
+
+---
+
+### Would you like me to implement these safeguards now?
+I can add the `conftest.py` safety lock, the `reset_store` deletion guard, the startup auto-healing, and the regression tests right away.

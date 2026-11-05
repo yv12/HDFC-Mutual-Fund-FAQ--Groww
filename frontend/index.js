@@ -204,6 +204,17 @@ function renderEmptyState() {
             </div>
             <h3>What would you like to know?</h3>
             <p class="empty-state-desc">Ask factual questions about 5 HDFC schemes, sourced from Groww.</p>
+            
+            <a href="fundpedia-case-study.pdf" target="_blank" rel="noopener" class="empty-state-deck-card" title="View Fundpedia AI Case Study Presentation (13 Slides)">
+                <img src="fundpedia-case-study-thumb.png" alt="Case Study Deck" class="empty-state-deck-thumb">
+                <div class="empty-state-deck-body">
+                    <span class="empty-state-deck-pill">AI PM Case Study</span>
+                    <h4 class="empty-state-deck-title">Fundpedia AI Presentation Deck</h4>
+                    <p class="empty-state-deck-sub">13-slide deep dive into architecture, guardrails & compliance</p>
+                </div>
+                <span class="empty-state-deck-action">View &rarr;</span>
+            </a>
+
             <div class="chips-container">
                 <button class="action-chip" onclick="setQueryAndFocus('Expense ratio of HDFC Mid Cap Fund')">
                     <span class="chip-dot">⚡</span> Expense ratio of HDFC Mid Cap

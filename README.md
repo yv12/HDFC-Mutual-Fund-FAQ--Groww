@@ -1,8 +1,12 @@
-# Mutual Fund FAQ Assistant
+# Fundpedia AI - Mutual Fund FAQ Assistant
 
 > **Facts-only. No investment advice.**
 
 A RAG-based FAQ assistant that answers factual questions about HDFC mutual fund schemes using verified data from Groww.
+
+[![Fundpedia AI Case Study Presentation](frontend/fundpedia-case-study-thumb.png)](frontend/fundpedia-case-study.pdf)
+
+📄 **[View Full Case Study Presentation Deck (13 Slides PDF)](frontend/fundpedia-case-study.pdf)**
 
 ---
 
